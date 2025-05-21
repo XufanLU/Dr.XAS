@@ -172,3 +172,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+materials/Larch_calc_example/.DS_Store
+.DS_Store
