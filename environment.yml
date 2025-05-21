@@ -6,7 +6,8 @@ dependencies:
   - python=3.11
   - pymatgen
   - larch
-  - numpy
   - jupyter
   - ipykernel
   - pip
+  - pip:
+      - "numpy<2"
