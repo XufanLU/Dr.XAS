@@ -5,9 +5,9 @@ channels:
 dependencies:
   - python=3.11
   - pymatgen
-  - larch
   - jupyter
   - ipykernel
   - pip
   - pip:
       - "numpy<2"
+      - git+https://github.com/xraypy/xraylarch.git
