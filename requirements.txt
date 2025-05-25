@@ -1,0 +1,17 @@
+python-dotenv
+ipykernel
+jupyterlab
+jupyterlab-git
+openai
+openai-agents
+pymatgen
+numpy<2
+git+https://github.com/xraypy/xraylarch.git
+ipympl
+anywidget
+nbformat>=4.2.0
+
+#web development
+uvicorn
+fastapi[standard]
+logfire[fastapi]
