@@ -73,14 +73,7 @@ export function DeployDialog({
         <div className="text-sm text-muted-foreground">
           The fragment will be available up until the expiration date you choose
           and you&apos;ll be billed based on our{' '}
-          <a
-            href="https://e2b.dev/docs/pricing"
-            target="_blank"
-            className="underline"
-          >
-            Compute pricing
-          </a>
-          .
+     
         </div>
         <div className="text-sm text-muted-foreground">
           All new accounts receive $100 worth of compute credits. Upgrade to{' '}

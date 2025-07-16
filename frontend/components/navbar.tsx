@@ -126,14 +126,6 @@ export function NavBar({
                 </span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  window.open('https://e2b.dev', '_blank')
-                }}
-              >
-                <Logo className="mr-2 h-4 w-4 text-muted-foreground" />
-                About E2B
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onSocialClick('github')}>
                 <GitHubLogoIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                 Star on GitHub

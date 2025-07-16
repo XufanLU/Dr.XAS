@@ -1,5 +1,5 @@
 {
-  "name": "e2b-fragments",
+  "name": "Dr.XAS",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -15,6 +15,8 @@
     "@ai-sdk/google-vertex": "^2.2.3",
     "@ai-sdk/mistral": "^1.0.1",
     "@ai-sdk/openai": "^1.3.15",
+    "@aws-sdk/client-s3": "^3.846.0",
+    "@aws-sdk/s3-request-presigner": "^3.846.0",
     "@e2b/code-interpreter": "^1.0.2",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.1",

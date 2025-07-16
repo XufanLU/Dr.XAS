@@ -30,6 +30,8 @@ from larch.io import read_ascii
 
 from agents import function_tool
 from typing import List
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def get_absorber_from_cif(cif_file: str) -> str:
@@ -370,6 +372,113 @@ def extract_path_parameters(result) -> List:
     return path_summaries
 
 
+def viz(name,path_list,result):
+    """
+    Visualize the result
+    """
+
+    data=load_prj()
+
+    datalist = [name]
+
+
+    # cmap = plt.cm.nipy_spectral
+    cmap = plt.cm.magma
+    colors = [cmap(value) for value in np.linspace(0, 1, 16)]
+    usepath = 16
+
+    # step = 2.2 # Cu foil
+    kweight = 2
+    step = 1.2 * kweight / 2
+
+    kmax = 10
+
+
+
+    for i, sample in enumerate(datalist):
+        plt.figure(figsize=(10,5))
+        
+        mod = result.datasets[i].model
+        dat = result.datasets[i].data
+        data_chik  = dat.chi * dat.k**kweight
+        model_chik = mod.chi * mod.k**kweight
+
+        plt.subplot(131)
+        plt.plot(dat.k, data_chik, color='navy', label='data', alpha=0.6, lw=2)
+        plt.plot(mod.k, model_chik, color='crimson', label='fit', alpha=0.6, lw=2)
+
+        for i, path_i in enumerate(list(path_list.values())[:usepath]):
+            path_i_data = ff2chi([path_i], params=result.paramgroup)
+            path_chik  = path_i_data.chi * path_i_data.k**kweight
+            path_name = path_i.filename.split('_')[-1].split('.')[0]
+            
+            plt.plot(path_i_data.k,
+                    path_chik - step*(i+1),
+                    label=path_name, 
+                    color=colors[i], 
+                    alpha=0.6, lw=1.5, ls='-.')
+            
+        plt.xlabel("$k$ [$\\AA^{-1}$]", fontsize=12)
+        plt.ylabel("$k^2 \\chi (k)$ [$\\AA^{-2}$]", fontsize=12)
+        plt.xlim(0, 9.5)
+        # plt.ylim(-4, 1.25)
+
+        plt.subplot(132)
+        xftf(dat, kmin=3, kmax=kmax, kweight=kweight, dk=1, window='hanning', rmax_out=12)
+        xftf(mod, kmin=3, kmax=kmax, kweight=kweight, dk=1, window='hanning', rmax_out=12)
+
+        plt.plot(dat.r, dat.chir_mag, color='navy', label='data', alpha=0.6, lw=2)
+        plt.plot(mod.r, mod.chir_mag, color='crimson', label='fit', alpha=0.6, lw=2)
+
+        for i, path_i in enumerate(list(path_list.values())[:usepath]):
+            path_i_data = ff2chi([path_i], params=result.paramgroup)
+            path_chik  = path_i_data.chi * path_i_data.k**kweight
+            xftf(path_i_data, kmin=3.5, kmax=9.5, kweight=kweight, dk=1, window='hanning', rmax_out=12)
+            path_name = path_i.filename.split('_')[-1].split('.')[0]
+            
+            plt.plot(path_i_data.r,
+                    path_i_data.chir_mag - step*(i+1),
+                    label=path_name, 
+                    color=colors[i], 
+                    alpha=0.6, lw=1.5, ls='-.')
+            
+        plt.title(sample)
+        plt.xlabel("$R$ [$\\AA$]", fontsize=12)
+        plt.ylabel("$|\\chi(R)|$ [$\\AA ^{-3}$]", fontsize=12)
+        plt.xlim(0, 5)
+        # plt.ylim(-4, 1.25)
+
+        plt.subplot(133)
+        
+        plt.plot(dat.r, dat.chir_re, color='navy', label='data', alpha=0.6, lw=2)
+        plt.plot(mod.r, mod.chir_re, color='crimson', label='fit', alpha=0.6, lw=2)
+
+        for i, path_i in enumerate(list(path_list.values())[:usepath]):
+            path_i_data = ff2chi([path_i], params=result.paramgroup)
+            path_chik  = path_i_data.chi * path_i_data.k**kweight
+            xftf(path_i_data, kmin=3.5, kmax=9.5, kweight=kweight, dk=1, window='hanning', rmax_out=12)
+            path_name = path_i.filename.split('_')[-1].split('.')[0]
+            
+            plt.plot(path_i_data.r,
+                    path_i_data.chir_re - step*(i+1),
+                    label=path_name, 
+                    color=colors[i], 
+                    alpha=0.6, lw=1.5, ls='-.')
+            
+        plt.xlabel("$R$ [$\\AA$]", fontsize=12)
+        plt.ylabel("Re[$\\chi(R)$] [$\\AA ^{-3}$]", fontsize=12)
+        plt.xlim(0, 5)
+        # plt.ylim(-4, 1.25)
+        plt.legend(loc='upper right', frameon=False)
+        plt.tight_layout();
+
+        origin = Path.cwd() 
+
+        save_folder = 'physics/viz/'
+        save_path = origin / save_folder / f"{sample}_all.jpg"
+        plt.savefig(save_path, dpi = 300)
+
+
 if __name__ == "__main__":
     name = "Ni_foil"  # user input file
 
@@ -409,11 +518,13 @@ if __name__ == "__main__":
     )  # this is the function that runs the fit on the paths
 
     # report(result) # this is the function that prints the report of the fit results
-    print("############################")
-    print("line 400")
-    extract_path_parameters(result)
-    print("############################")
-    print("line 403")
-    extract_fitted_parameters(
-        result
-    )  # this is the function that extracts the fitted parameters from the result of the fit
+    # print("############################")
+    # print("line 400")
+    # extract_path_parameters(result)
+    # print("############################")
+    # print("line 403")
+    # extract_fitted_parameters(
+    #     result
+    # )  # this is the function that extracts the fitted parameters from the result of the fit#
+
+    viz(name,path_list,result)

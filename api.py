@@ -11,10 +11,17 @@ from agents import (
     InputGuardrailTripwireTriggered,
     Handoff,
 )
+from aws import create_bucket
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from uuid import uuid4
 from agent import create_agent
+from aws import (
+    upload_file,
+    download_file,
+    delete_file,
+    create_s3_client,
+    create_bucket)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,6 +39,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+#============
+# AWS setup
+#============
+create_bucket("test-dr-xas")  # Create a bucket for storing data
 
 
 
@@ -133,8 +144,14 @@ async def chat_endpoint(req: ChatRequest):
             # Create a new runner instance
             req.message = req.message.strip()
             name=req.message.split()[0]  # Assuming the first word is the name
+
+          #  file_name = name + ".cif"
+
+           # download_file("test-dr-xas", "cif_file", file_name)  # Download the CIF file from S3 # when upload use objectname : cif_file
+
             cif_file = "physics/cif_files/" + name + ".cif"  #
             agent = await create_agent(name, cif_file)
+
            # agent_id store for reuse? 
 
             result = await Runner.run(agent, content)

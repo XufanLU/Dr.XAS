@@ -188,7 +188,7 @@ export function ChatInput({
             maxRows={5}
             className="text-normal px-3 resize-none ring-0 bg-inherit w-full m-0 outline-none"
             required={true}
-            placeholder="Describe your app..."
+            placeholder="Ni_foil"
             disabled={isErrored}
             value={input}
             onChange={handleInputChange}

@@ -268,7 +268,7 @@ export default function Home() {
 
   function handleSocialClick(target: 'github' | 'x' | 'discord') {
     if (target === 'github') {
-      window.open('https://github.com/e2b-dev/fragments', '_blank')
+      window.open('https://github.com/XufanLU/Dr.XAS', '_blank')
     } else if (target === 'x') {
       window.open('https://x.com/e2b_dev', '_blank')
     } else if (target === 'discord') {
@@ -301,6 +301,12 @@ export default function Home() {
     setMessages((previousMessages) => [...previousMessages.slice(0, -2)])
     setCurrentPreview({ result: undefined })
   }
+
+  function handleClosePreview() {
+  setResult(undefined)
+  setIsPreviewLoading(false)
+}
+
 
   return (
     <main className="flex min-h-screen max-h-screen">
@@ -368,9 +374,10 @@ export default function Home() {
           onSelectedTabChange={setCurrentTab}
           isChatLoading={isLoading}
           isPreviewLoading={isPreviewLoading}
+          filename={chatInput}
        //   fragment={fragment}
           result={result as ExecutionResult}
-          onClose={() => setFragment(undefined)}// todo: change this
+       //   onClose={() => handleClosePreview()}
         />
       </div>
     </main>

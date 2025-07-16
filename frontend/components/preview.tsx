@@ -1,6 +1,4 @@
 import { DeployDialog } from './deploy-dialog'
-// import { FragmentCode } from './fragment-code'
-// import { FragmentPreview } from './fragment-preview'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -9,11 +7,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-// import { FragmentSchema } from '@/lib/schema'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
 import { ChevronsRight, LoaderCircle } from 'lucide-react'
-import { Dispatch, SetStateAction } from 'react'
+import { Dispatch, SetStateAction, useState, useEffect } from 'react'
+import { S3Client , GetObjectCommand} from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import Image from 'next/image';
 
 export function Preview({
   teamID,
@@ -22,7 +22,7 @@ export function Preview({
   onSelectedTabChange,
   isChatLoading,
   isPreviewLoading,
-  //fragment,
+  filename,
   result,
   onClose,
 }: {
@@ -32,22 +32,61 @@ export function Preview({
   onSelectedTabChange: Dispatch<SetStateAction<'code' | 'viz'>>
   isChatLoading: boolean
   isPreviewLoading: boolean
-  // fragment?: DeepPartial<FragmentSchema>
+  filename: string
   result?: ExecutionResult
   onClose: () => void
 }) {
-  // if (!fragment) {
-  //   return null
-  // }
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
- // const isLinkAvailable = result?.template !== 'code-interpreter-v1'
+  useEffect(() => {
+    console.log('Fetching image from S3...');
+    const downloadFromS3 = async () => {
+    const s3Client = new S3Client({
+      credentials: {
+        accessKeyId: "your key id",
+        secretAccessKey: "your access key"
+      },
+      region: "eu-north-1"
+    });
+      setLoading(true);
+      const command = new GetObjectCommand({
+        Bucket: 'test-dr-xas',
+        Key: 'viz/Ni_foil_all.jpg', // Adjust the key based on your S3 structure
+      });
+
+
+    try {
+    
+      const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      setImageUrl(url);
+      setLoading(false);
+     
+      
+    } catch (err) {
+      console.error('Error downloading file:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load image');
+      setLoading(false);
+    }
+    };
+
+    downloadFromS3();
+
+    // Cleanup function
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, []); // Empty dependency array means this runs once on mount
 
   return (
     <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-popover h-full w-full overflow-auto">
       <Tabs
         value={selectedTab}
         onValueChange={(value) =>
-          onSelectedTabChange(value as 'code'| 'viz')
+          onSelectedTabChange(value as 'code' | 'viz')
         }
         className="h-full flex flex-col items-start justify-start"
       >
@@ -55,57 +94,47 @@ export function Preview({
           <TooltipProvider>
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground"
-                  onClick={onClose}
-                >
-                  <ChevronsRight className="h-5 w-5" />
-                </Button>
               </TooltipTrigger>
               <TooltipContent>Close sidebar</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <div className="flex justify-center">
-            <TabsList className="px-1 py-0 border h-8">
-              <TabsTrigger
-                className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
-                value="code"
-              >
-                {isChatLoading && (
-                  <LoaderCircle
-                    strokeWidth={3}
-                    className="h-3 w-3 animate-spin"
-                  />
-                )}
-                Code
-              </TabsTrigger>
-              <TabsTrigger
-                disabled={!result}
-                className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
-                value="viz"
-              >
-                Preview
-                {isPreviewLoading && (
-                  <LoaderCircle
-                    strokeWidth={3}
-                    className="h-3 w-3 animate-spin"
-                  />
-                )}
-              </TabsTrigger>
-            </TabsList>
+          <div className="col-span-3 flex justify-center items-center">
+            <p className="text-center">Report</p>
           </div>
-      
         </div>
-        <TabsContent value="viz" className="h-full">
-              {result && (
-                <div className="p-4">
-                  <pre>{result.messages}</pre>
-                </div>
-              )}
+        <TabsContent value={selectedTab} >
+  {result && (
+    <div className="p-4">
+      {/* Messages Container */}
+      <div className="mb-6" > {/* Add margin-bottom for spacing */}
+       <pre className="max-w-[100%] whitespace-pre-wrap break-words">
+          {result.messages}
+        </pre>
+      </div>
+
+      {/* Image Container */}
+      <div className="relative w-full h-[500px]"> {/* Fixed height container for image */}
+        {loading && <div>Loading image...</div>}
+        {error && <div className="text-red-500">Error: {error}</div>}
+        {imageUrl && !loading && (
+          <Image
+            src={imageUrl}
+            alt="Ni Foil Analysis"
+            fill
+            style={{ objectFit: 'contain' }}
+            onError={(e) => {
+              console.error('Image loading error:', e);
+              setError('Failed to load image');
+            }}
+            unoptimized
+            priority
+          />
+        )}
+      </div>
+    </div>
+  )}
 </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
