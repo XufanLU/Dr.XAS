@@ -174,3 +174,9 @@ cython_debug/
 .pypirc
 materials/Larch_calc_example/.DS_Store
 .DS_Store
+
+#node
+node_modules/
+
+#feff
+FEFF_paths/

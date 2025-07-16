@@ -3,8 +3,7 @@
 Enter the repository
 
 ```
-cd Dr.XAFS 
-
+cd backend
 ```
 ### 1. Create a venv and activate 
 ```
