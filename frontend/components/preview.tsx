@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/tooltip'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
-import { ChevronsRight, LoaderCircle } from 'lucide-react'
+import { ChevronsRight, LoaderCircle, X } from 'lucide-react'
 import { Dispatch, SetStateAction, useState, useEffect } from 'react'
 import { S3Client , GetObjectCommand} from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -43,10 +43,19 @@ export function Preview({
   useEffect(() => {
     console.log('Fetching image from S3...');
     const downloadFromS3 = async () => {
+    const accessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY;
+    
+    if (!accessKeyId || !secretAccessKey) {
+      setError('AWS credentials not configured');
+      setLoading(false);
+      return;
+    }
+
     const s3Client = new S3Client({
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        accessKeyId,
+        secretAccessKey,
       },
       region: "eu-north-1"
     });
@@ -79,7 +88,7 @@ export function Preview({
         URL.revokeObjectURL(imageUrl);
       }
     };
-  }, []); // Empty dependency array means this runs once on mount
+  }, [imageUrl]); // Include imageUrl in dependency array
 
   return (
     <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-popover h-full w-full overflow-auto">
@@ -94,12 +103,20 @@ export function Preview({
           <TooltipProvider>
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="w-8 h-8 p-0"
+                >
+                  <ChevronsRight className="w-4 h-4" />
+                </Button>
               </TooltipTrigger>
-              <TooltipContent>Close sidebar</TooltipContent>
+              <TooltipContent>Collapse preview</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <div className="col-span-3 flex justify-center items-center">
-            <p className="text-center">Report</p>
+          <div className="col-span-2 flex justify-center items-center">
+            <p className="text-center font-semibold">Report</p>
           </div>
         </div>
         <TabsContent value={selectedTab} >

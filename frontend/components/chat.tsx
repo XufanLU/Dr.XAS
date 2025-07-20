@@ -23,7 +23,7 @@ export function Chat({
       chatContainer.scrollTop = chatContainer.scrollHeight
       console.log(messages)
     }
-  }, [JSON.stringify(messages)])
+  }, [messages])
 
   return (
     <div
@@ -79,9 +79,14 @@ export function Chat({
         </div>
       ))}
       {isLoading && (
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <LoaderIcon strokeWidth={2} className="animate-spin w-4 h-4" />
-          <span>Generating...</span>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground px-4 py-2">
+          <LoaderIcon strokeWidth={2} className="animate-spin w-4 h-4 text-blue-500" />
+          <span> Dr.XAS is thinking...</span>
+          <div className="flex gap-1">
+            <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce"></div>
+            <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+            <div className="w-1 h-1 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+          </div>
         </div>
       )}
     </div>

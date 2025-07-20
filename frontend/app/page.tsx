@@ -8,6 +8,7 @@ import { ChatPicker } from '@/components/chat-picker'
 import { ChatSettings } from '@/components/chat-settings'
 import { NavBar } from '@/components/navbar'
 import { Preview } from '@/components/preview'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth'
 import { Message, toAISDKMessages, toMessageImage } from '@/lib/messages'
 import { LLMModelConfig } from '@/lib/models'
@@ -19,6 +20,7 @@ import templates, { TemplateId } from '@/lib/templates'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
 import { experimental_useObject as useObject } from 'ai/react'
+import { ChevronsLeft } from 'lucide-react'
 import { usePostHog } from 'posthog-js/react'
 import { SetStateAction, useEffect, useState } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
@@ -41,9 +43,11 @@ export default function Home() {
 
   const [result, setResult] = useState<ExecutionResult>()
   const [messages, setMessages] = useState<Message[]>([])
+  const [isPreviewVisible, setIsPreviewVisible] = useState(true)
   //const [fragment, setFragment] = useState<DeepPartial<FragmentSchema>>()
   const [currentTab, setCurrentTab] = useState<'code' | 'viz'>('viz')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+  const [isApiLoading, setIsApiLoading] = useState(false)
   const [isAuthDialogOpen, setAuthDialog] = useState(false)
   const [authView, setAuthView] = useState<ViewType>('sign_in')
   const [isRateLimited, setIsRateLimited] = useState(false)
@@ -155,7 +159,7 @@ export default function Home() {
 
   useEffect(() => {
     if (error) stop()
-  }, [error])
+  }, [error, stop])
 
   function setMessage(message: Partial<Message>, index?: number) {
     setMessages((previousMessages) => {
@@ -172,8 +176,14 @@ export default function Home() {
   async function handleSubmitAgent(e: React.FormEvent<HTMLFormElement>) {
   e.preventDefault()
 
-  if (isLoading) {
+  if (isLoading || isPreviewLoading || isApiLoading) {
     stop()
+    return
+  }
+
+  // Don't proceed if no input
+  if (!chatInput.trim()) {
+    return
   }
 
   // Format the request according to your API's requirements
@@ -183,9 +193,34 @@ export default function Home() {
   }
 
   console.log('API URL:', apiUrl);
+  
+  // Clear any previous error messages
+  setErrorMessage('')
+  
+  // Add the user's message immediately
+  addMessage({
+    role: 'user',
+    content: [{ type: 'text', text: chatInput }]
+  });
+
+  // Add a loading message for the assistant
+  const loadingMessage: Message = {
+    role: 'assistant',
+    content: [{ 
+      type: 'text', 
+      text: '⏳ Please wait while I process your query...' 
+    }]
+  };
+  addMessage(loadingMessage);
+  const loadingMessageIndex = messages.length + 1; // +1 because we just added the user message
+  
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
+
+    // Set loading states
+    setIsPreviewLoading(true)
+    setIsApiLoading(true)
 
     const response = await fetch(`${apiUrl}/chat`, {
       method: 'POST',
@@ -198,45 +233,55 @@ export default function Home() {
 
     clearTimeout(timeoutId);
 
-    console.log(JSON.stringify(requestData))
+    console.log('Request data:', JSON.stringify(requestData))
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.statusText}`);
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
 
     const result = await response.json();
-
+    console.log('API response:', result);
 
     setResult({
       sbxId: result.sbxId ?? '', // Provide a valid sbxId from the API response or fallback to empty string
       messages: result
     });
     
-    // Add the user's message to the chat
-    addMessage({
-      role: 'user',
-      content: [{ type: 'text', text: chatInput }]
-    });
-
-    // Add the API response to the chat
-    addMessage({
-      role: 'assistant',
+    // Show preview when new result arrives
+    setIsPreviewVisible(true);
+    
+    // Update the loading message with the actual response
+    setMessage({
       content: [{ type: 'text', text: result }]
-    });
+    }, loadingMessageIndex);
 
-    // Clear input
+    // Clear input and switch to viz tab
     setChatInput('');
     setCurrentTab('viz');
-    console.log('API response:', result);
-    
 
   } catch (error) {
     console.error('Error:', error);
+    let errorMsg = 'An unexpected error occurred';
+    
     if (error instanceof Error) {
-      setErrorMessage(error.message);
-    } else {
-      setErrorMessage(String(error));
+      if (error.name === 'AbortError') {
+        errorMsg = 'Request timed out. Please try again.';
+      } else {
+        errorMsg = error.message;
+      }
     }
+    
+    setErrorMessage(errorMsg);
+    
+    // Update the loading message with error
+    setMessage({
+      content: [{ type: 'text', text: `Error: ${errorMsg}` }]
+    }, loadingMessageIndex);
+    
+  } finally {
+    // Always clear loading states
+    setIsPreviewLoading(false)
+    setIsApiLoading(false)
   }
 }
 
@@ -296,6 +341,8 @@ export default function Home() {
     setResult(undefined)
     setCurrentTab('code')
     setIsPreviewLoading(false)
+    setIsApiLoading(false)
+    setIsPreviewVisible(true)
   }
 
   function setCurrentPreview(preview: {
@@ -312,13 +359,16 @@ export default function Home() {
   }
 
   function handleClosePreview() {
-  setResult(undefined)
-  setIsPreviewLoading(false)
-}
+    setIsPreviewVisible(false)
+  }
+
+  function handleShowPreview() {
+    setIsPreviewVisible(true)
+  }
 
 
   return (
-    <main className="flex min-h-screen max-h-screen">
+    <main className="flex min-h-screen max-h-screen relative">
       {supabase && (
         <AuthDialog
           open={isAuthDialogOpen}
@@ -327,9 +377,24 @@ export default function Home() {
           supabase={supabase}
         />
       )}
+      
+      {/* Floating Show Analysis Button */}
+      {result && !isPreviewVisible && (
+        <div className="fixed top-1/2 right-4 z-50 transform -translate-y-1/2">
+          <Button
+            onClick={handleShowPreview}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg rounded-full px-4 py-2"
+            size="sm"
+          >
+            <ChevronsLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Show Report</span>
+          </Button>
+        </div>
+      )}
+
       <div className="grid w-full md:grid-cols-2">
         <div
-          className={`flex flex-col w-full max-h-full max-w-[800px] mx-auto px-4 overflow-auto`}
+          className={`flex flex-col w-full max-h-full max-w-[800px] mx-auto px-4 overflow-auto ${result && isPreviewVisible ? 'md:col-span-1' : 'md:col-span-2'}`}
         >
           <NavBar
             session={session}
@@ -343,7 +408,7 @@ export default function Home() {
           />
           <Chat
             messages={messages}
-            isLoading={isLoading}
+            isLoading={isLoading || isApiLoading}
             setCurrentPreview={setCurrentPreview}
           />
           <ChatInput
@@ -376,18 +441,20 @@ export default function Home() {
             />
           </ChatInput>
         </div>
-        <Preview
-          teamID={userTeam?.id}
-          accessToken={session?.access_token}
-          selectedTab={currentTab}
-          onSelectedTabChange={setCurrentTab}
-          isChatLoading={isLoading}
-          isPreviewLoading={isPreviewLoading}
-          filename={chatInput}
-       //   fragment={fragment}
-          result={result as ExecutionResult}
-          onClose={() => handleClosePreview()}
-        />
+        {result && isPreviewVisible && (
+          <Preview
+            teamID={userTeam?.id}
+            accessToken={session?.access_token}
+            selectedTab={currentTab}
+            onSelectedTabChange={setCurrentTab}
+            isChatLoading={isLoading}
+            isPreviewLoading={isPreviewLoading}
+            filename={chatInput}
+         //   fragment={fragment}
+            result={result as ExecutionResult}
+            onClose={() => handleClosePreview()}
+          />
+        )}
       </div>
     </main>
   )
