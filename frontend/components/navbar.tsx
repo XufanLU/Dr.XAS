@@ -48,7 +48,7 @@ export function NavBar({
     <nav className="w-full flex bg-background py-4">
       <div className="flex flex-1 items-center">
         <Link href="/" className="flex items-center gap-2" target="_blank">
-          <Logo width={24} height={24} />
+          <Logo style={{ width: 24, height: 24 }} />
           <h1 className="whitespace-pre">Dr.XAS</h1>
         </Link>
         {/* <Link

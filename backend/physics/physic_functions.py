@@ -55,57 +55,62 @@ def make_and_run_feff(file_name, absorber, radius=5.0, edge="K"):
 def _make_and_run_feff(
     cif_file, out_dir, absorber="Ni", radius=5.0, edge="K", feff_exe="feff8l"
 ):
-    os.makedirs(out_dir, exist_ok=True)
+    
+    try:
+        os.makedirs(out_dir, exist_ok=True)
 
-    # 1) Parse CIF → structure
-    struct = CifParser(cif_file).get_structures()[0]
+        # 1) Parse CIF → structure
+        struct = CifParser(cif_file).get_structures()[0]
 
-    # 2) Generate basic feff.inp with ff2chi=1
-    feff_set = FEFFDictSet(
-        absorbing_atom=absorber,
-        structure=struct,
-        radius=radius,
-        edge=edge,
-        config_dict={},
-        user_tag_settings={"CONTROL": {"ff2chi": 1}},
-    )
-    feff_set.write_input(out_dir)
+        # 2) Generate basic feff.inp with ff2chi=1
+        feff_set = FEFFDictSet(
+            absorbing_atom=absorber,
+            structure=struct,
+            radius=radius,
+            edge=edge,
+            config_dict={},
+            user_tag_settings={"CONTROL": {"ff2chi": 1}},
+        )
+        feff_set.write_input(out_dir)
 
-    # 3) Read, patch, write back
-    inp_path = os.path.join(out_dir, "feff.inp")
-    new_lines = []
-    saw_control = saw_print = False
+        # 3) Read, patch, write back
+        inp_path = os.path.join(out_dir, "feff.inp")
+        new_lines = []
+        saw_control = saw_print = False
 
-    for line in open(inp_path):
-        # After writing or seeing a CONTROL line, inject our CONTROL+PRINT
-        if line.strip().startswith("CONTROL") and not saw_control:
-            new_lines.append(
-                "*         pot    xsph  fms   paths genfmt ff2chi\n"
-                "CONTROL   1      1     1     1     1      1\n"
-            )
-            new_lines.append("PRINT     1      0     0     0     0      3\n")
-            saw_control = saw_print = True
-            # skip any original CONTROL/PRINT lines
-            continue
+        for line in open(inp_path):
+            # After writing or seeing a CONTROL line, inject our CONTROL+PRINT
+            if line.strip().startswith("CONTROL") and not saw_control:
+                new_lines.append(
+                    "*         pot    xsph  fms   paths genfmt ff2chi\n"
+                    "CONTROL   1      1     1     1     1      1\n"
+                )
+                new_lines.append("PRINT     1      0     0     0     0      3\n")
+                saw_control = saw_print = True
+                # skip any original CONTROL/PRINT lines
+                continue
 
-        # If CONTROL never appeared before POTENTIALS, inject just before POTENTIALS
-        if not saw_control and line.strip().startswith("POTENTIALS"):
-            new_lines.append(
-                "*         pot    xsph  fms   paths genfmt ff2chi\n"
-                "CONTROL   1      1     1     1     1      1\n"
-                "PRINT     1      0     0     0     0      3\n"
-            )
-            saw_control = saw_print = True
+            # If CONTROL never appeared before POTENTIALS, inject just before POTENTIALS
+            if not saw_control and line.strip().startswith("POTENTIALS"):
+                new_lines.append(
+                    "*         pot    xsph  fms   paths genfmt ff2chi\n"
+                    "CONTROL   1      1     1     1     1      1\n"
+                    "PRINT     1      0     0     0     0      3\n"
+                )
+                saw_control = saw_print = True
 
-        new_lines.append(line)
+            new_lines.append(line)
 
-    with open(inp_path, "w") as f:
-        f.writelines(new_lines)
+        with open(inp_path, "w") as f:
+            f.writelines(new_lines)
 
-    # 4) Run the real FEFF8L (must be the Fortran binary!)
-    print(f"Running {feff_exe} in {out_dir} …")
-    subprocess.run([feff_exe], cwd=out_dir, check=True)
-    print("Done; check for feff0001.dat … in", out_dir)
+        # 4) Run the real FEFF8L (must be the Fortran binary!)
+        print(f"Running {feff_exe} in {out_dir} …")
+        subprocess.run([feff_exe], cwd=out_dir, check=True)
+        print("Done; check for feff0001.dat … in", out_dir)
+    except Exception as e:
+        print(f"_make_and_run_feff: {e}")
+        raise e 
 
 
 def load_paths(feff_dir, amp_ratio=None, r_max=None, verbose=False):

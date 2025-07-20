@@ -49,10 +49,10 @@ export default function Home() {
   const [isRateLimited, setIsRateLimited] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const { session, userTeam } = useAuth(setAuthDialog, setAuthView)
-
+  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   const { object, submit, isLoading, stop, error } = useObject({
-  api: 'http://127.0.0.1:8000/chat',  // Your local endpoint
+  api: `${apiUrl}`,  // Your local endpoint
   schema: chatSchema, 
   onError: (error) => {
     console.error('Error submitting request:', error)
@@ -182,14 +182,23 @@ export default function Home() {
     message: chatInput
   }
 
+  console.log('API URL:', apiUrl);
   try {
-    const response = await fetch('http://127.0.0.1:8000/chat', {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
+
+    const response = await fetch(`${apiUrl}/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestData)
+      body: JSON.stringify(requestData),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
+
+    console.log(JSON.stringify(requestData))
 
     if (!response.ok) {
       throw new Error(`API error: ${response.statusText}`);
@@ -377,7 +386,7 @@ export default function Home() {
           filename={chatInput}
        //   fragment={fragment}
           result={result as ExecutionResult}
-       //   onClose={() => handleClosePreview()}
+          onClose={() => handleClosePreview()}
         />
       </div>
     </main>

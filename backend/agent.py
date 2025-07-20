@@ -37,15 +37,18 @@ async def create_agent(name: str, cif_file: str) -> Agent:
     """
 
     paths_str = await prepocessing(name, cif_file)
+    try:
 
-    agent = Agent(
-        name="Assistant",
-        instructions=f"You are a helpful assistant. You will be provided with a list parameters, please fit XAFS data with name {name} using the provided parameters to FEFF paths {paths_str}",
-        tools=[fit_ffef],
-    )
+        agent = Agent(
+            name="Assistant",
+            instructions=f"You are a helpful assistant. You will be provided with a list parameters, please fit XAFS data with name {name} using the provided parameters to FEFF paths {paths_str}",
+            tools=[fit_ffef],
+        )
 
-    return agent
-
+        return agent
+    except Exception as e:
+        print(f"Error creating agent: {e}")
+        raise e 
 
 async def main():
     name = "Ni_foil"  # user input file

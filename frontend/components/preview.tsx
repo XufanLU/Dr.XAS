@@ -45,8 +45,8 @@ export function Preview({
     const downloadFromS3 = async () => {
     const s3Client = new S3Client({
       credentials: {
-        accessKeyId: "your key id",
-        secretAccessKey: "your access key"
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
       },
       region: "eu-north-1"
     });

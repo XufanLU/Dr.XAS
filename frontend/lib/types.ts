@@ -18,4 +18,8 @@ export type ExecutionResultWeb = ExecutionResultBase & {
   url: string
 }
 
-export type ExecutionResult = ExecutionResultInterpreter | ExecutionResultWeb
+export type ExecutionResultAgent = ExecutionResultBase & {
+  messages: string
+} 
+
+export type ExecutionResult = ExecutionResultAgent
