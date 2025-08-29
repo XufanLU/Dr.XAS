@@ -1,0 +1,11 @@
+{
+  "second database": {
+    "name": "second database",
+    "description": "This is a second database."
+  },
+  "another database": {
+    "name": "another database",
+    "description": "This is another material database."
+  }
+
+}

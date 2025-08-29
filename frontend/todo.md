@@ -8,3 +8,5 @@ add the viz part and include it also but only in preview ?
 
 
 code??? 
+
+change the start page. 

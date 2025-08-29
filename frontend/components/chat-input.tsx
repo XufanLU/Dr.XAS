@@ -9,9 +9,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { isFileInArray } from '@/lib/utils'
-import { ArrowUp, Paperclip, Square, X } from 'lucide-react'
+import { ArrowUp, Paperclip, Plus, Square, X } from 'lucide-react'
 import { SetStateAction, useEffect, useMemo, useState } from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
+import { DataBasePicker} from './database-picker'
+import databases,{ Databases } from '@/lib/database'
+import { NodeNextRequest } from 'next/dist/server/base-http/node'
 
 export function ChatInput({
   retry,
@@ -40,7 +43,7 @@ export function ChatInput({
   isMultiModal: boolean
   files: File[]
   handleFileChange: (change: SetStateAction<File[]>) => void
-  children: React.ReactNode
+  children?: React.ReactNode
 }) {
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     handleFileChange((prev) => {
@@ -75,6 +78,9 @@ export function ChatInput({
   }
 
   const [dragActive, setDragActive] = useState(false)
+  const [databasesState, setDatabasesState] = useState<Databases>(databases)
+  const [selectedDatabase, setSelectedDatabase] = useState<'auto' | keyof Databases>('auto')
+
 
   function handleDrag(e: React.DragEvent) {
     e.preventDefault()
@@ -142,6 +148,11 @@ export function ChatInput({
       handleFileChange([])
     }
   }, [isMultiModal])
+
+
+ function onSelectedDatabaseChange(database: 'auto' | keyof Databases) {
+    setSelectedDatabase(database)
+  }
 
   return (
     <form
@@ -219,14 +230,22 @@ export function ChatInput({
                         document.getElementById('multimodal')?.click()
                       }}
                     >
-                      <Paperclip className="h-5 w-5" />
+                      <Plus className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Add attachments</TooltipContent>
                 </Tooltip>
+                <p>Spectra, FEFF inp, cif files, images</p>
               </TooltipProvider>
               {files.length > 0 && filePreview}
             </div>
+                        
+            <DataBasePicker
+              databases={databasesState}
+              selectedDatabase={selectedDatabase}
+              onSelectedDatabaseChange={onSelectedDatabaseChange}
+            />
+
             <div>
               {!isLoading ? (
                 <TooltipProvider>

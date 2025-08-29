@@ -394,7 +394,7 @@ export default function Home() {
 
       <div className="grid w-full md:grid-cols-2">
         <div
-          className={`flex flex-col w-full max-h-full max-w-[800px] mx-auto px-4 overflow-auto ${result && isPreviewVisible ? 'md:col-span-1' : 'md:col-span-2'}`}
+          className={`flex flex-col w-[80%] max-h-full mx-auto px-4 overflow-auto ${result && isPreviewVisible ? 'md:col-span-1' : 'md:col-span-2'}`}
         >
           <NavBar
             session={session}
@@ -411,35 +411,43 @@ export default function Home() {
             isLoading={isLoading || isApiLoading}
             setCurrentPreview={setCurrentPreview}
           />
-          <ChatInput
-            retry={retry}
-            isErrored={error !== undefined}
-            errorMessage={errorMessage}
-            isLoading={isLoading}
-            isRateLimited={isRateLimited}
-            stop={stop}
-            input={chatInput}
-            handleInputChange={handleSaveInputChange}
-            handleSubmit={handleSubmitAgent}
-            isMultiModal={currentModel?.multiModal || false}
-            files={files}
-            handleFileChange={handleFileChange}
-          >
-            <ChatPicker
-              templates={templates}
-              selectedTemplate={selectedTemplate}
-              onSelectedTemplateChange={setSelectedTemplate}
-              models={filteredModels}
-              languageModel={languageModel}
-              onLanguageModelChange={handleLanguageModelChange}
-            />
-            <ChatSettings
-              languageModel={languageModel}
-              onLanguageModelChange={handleLanguageModelChange}
-              apiKeyConfigurable={!process.env.NEXT_PUBLIC_NO_API_KEY_INPUT}
-              baseURLConfigurable={!process.env.NEXT_PUBLIC_NO_BASE_URL_INPUT}
-            />
-          </ChatInput>
+          <div className="flex flex-col flex-1">
+            <div className="flex-grow" />
+            <div className="flex items-center justify-center w-full">
+              <div className="w-[80vw] max-w-full">
+                <ChatInput
+                  retry={retry}
+                  isErrored={error !== undefined}
+                  errorMessage={errorMessage}
+                  isLoading={isLoading}
+                  isRateLimited={isRateLimited}
+                  stop={stop}
+                  input={chatInput}
+                  handleInputChange={handleSaveInputChange}
+                  handleSubmit={handleSubmitAgent}
+                  isMultiModal={currentModel?.multiModal || false}
+                  files={files}
+                  handleFileChange={handleFileChange}
+                >
+                  {/* <ChatPicker
+                    templates={templates}
+                    selectedTemplate={selectedTemplate}
+                    onSelectedTemplateChange={setSelectedTemplate}
+                    models={filteredModels}
+                    languageModel={languageModel}
+                    onLanguageModelChange={handleLanguageModelChange}
+                  />
+                  <ChatSettings
+                    languageModel={languageModel}
+                    onLanguageModelChange={handleLanguageModelChange}
+                    apiKeyConfigurable={!process.env.NEXT_PUBLIC_NO_API_KEY_INPUT}
+                    baseURLConfigurable={!process.env.NEXT_PUBLIC_NO_BASE_URL_INPUT}
+                  /> */}
+                </ChatInput>
+              </div>
+            </div>
+            <div className="flex-grow" />
+          </div>
         </div>
         {result && isPreviewVisible && (
           <Preview
