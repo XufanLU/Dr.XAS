@@ -406,13 +406,17 @@ export default function Home() {
             canUndo={messages.length > 1 && !isLoading}
             onUndo={handleUndo}
           />
+          {messages.length === 0 && (
+            <div className="flex justify-center items-center mt-8 mb-1">
+              <img src="/static/drxas_logo_big.png" alt="Dr.XAS Logo" style={{ maxWidth: '500px', width: '80%', height: 'auto' }} />
+            </div>
+          )}
           <Chat
             messages={messages}
             isLoading={isLoading || isApiLoading}
             setCurrentPreview={setCurrentPreview}
           />
-          <div className="flex flex-col flex-1">
-            <div className="flex-grow" />
+          <div className={messages.length === 0 ? "flex flex-col flex-1" : "flex flex-col flex-1 justify-end"}>
             <div className="flex items-center justify-center w-full">
               <div className="w-[80vw] max-w-full">
                 <ChatInput
@@ -446,7 +450,6 @@ export default function Home() {
                 </ChatInput>
               </div>
             </div>
-            <div className="flex-grow" />
           </div>
         </div>
         {result && isPreviewVisible && (

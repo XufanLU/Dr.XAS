@@ -5,6 +5,8 @@
 
 
 import requests
+import zipfile
+import os
 
 
 
@@ -27,8 +29,29 @@ def get_datasets():
 
     return datasets_map
 
+def get_data_by_id(dataset_id):
+    url = f"https://mdr.nims.go.jp/datasets/{dataset_id}.zip"
+    response = requests.get(url)
+    if response.status_code == 200:
+        zip_path = f"{dataset_id}.zip"
+        parent_dir = os.path.dirname(os.path.abspath(__file__))
+        sub_folder = os.path.join(parent_dir, "extracted_data")
+        os.makedirs(sub_folder, exist_ok=True)
+        zip_file_path = os.path.join(sub_folder, zip_path)
+        with open(zip_file_path, "wb") as f:
+            f.write(response.content)
+        txt_files = []
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+            zip_ref.extractall(sub_folder)  # extract to sub folder in parent directory
+            for file in zip_ref.namelist():
+             if file.endswith('.txt'):
+                txt_files.append(os.path.abspath(os.path.join(sub_folder, file)))
+        return txt_files
+
 
 
 if __name__ == "__main__":
-    datasets = get_datasets()
-    print(datasets)
+    # datasets = get_datasets()
+    # print(datasets)
+    result = get_data_by_id('ff693629-a57c-4475-aaa8-5a4a815db425')  # example dataset id
+    print(result)

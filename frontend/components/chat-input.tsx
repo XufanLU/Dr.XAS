@@ -13,6 +13,7 @@ import { ArrowUp, Paperclip, Plus, Square, X } from 'lucide-react'
 import { SetStateAction, useEffect, useMemo, useState } from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import { DataBasePicker} from './database-picker'
+import { MaterialSpecimenPicker, MaterialSpecimenMap } from './material-specimen-picker'
 import databases,{ Databases } from '@/lib/database'
 import { NodeNextRequest } from 'next/dist/server/base-http/node'
 
@@ -80,6 +81,30 @@ export function ChatInput({
   const [dragActive, setDragActive] = useState(false)
   const [databasesState, setDatabasesState] = useState<Databases>(databases)
   const [selectedDatabase, setSelectedDatabase] = useState<'auto' | keyof Databases>('auto')
+  const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  // Fetch material/specimen map from API
+  const [materialSpecimenMap, setMaterialSpecimenMap] = useState<MaterialSpecimenMap>({})
+  useEffect(() => {
+    async function fetchMaterialSpecimenMap() {
+      try {
+
+        const res = await fetch(`${apiUrl}/xafs_database`)
+        if (!res.ok) throw new Error('Failed to fetch material database')
+        const data = await res.json()
+        // Expecting data in the format: { [materialId]: [specimen, ...] }
+        setMaterialSpecimenMap(data)
+      } catch (err) {
+        // Optionally handle error, e.g. show a message
+        setMaterialSpecimenMap({})
+      }
+    }
+    fetchMaterialSpecimenMap()
+  }, [])
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
+
+
+
 
 
   function handleDrag(e: React.DragEvent) {
@@ -114,19 +139,24 @@ export function ChatInput({
   const filePreview = useMemo(() => {
     if (files.length === 0) return null
     return Array.from(files).map((file) => {
+      const isImage = file.type.startsWith('image/')
       return (
-        <div className="relative" key={file.name}>
+        <div className="relative flex items-center gap-2" key={file.name}>
           <span
             onClick={() => handleFileRemove(file)}
             className="absolute top-[-8] right-[-8] bg-muted rounded-full p-1"
           >
             <X className="h-3 w-3 cursor-pointer" />
           </span>
-          <img
-            src={URL.createObjectURL(file)}
-            alt={file.name}
-            className="rounded-xl w-10 h-10 object-cover"
-          />
+          {isImage ? (
+            <img
+              src={URL.createObjectURL(file)}
+              alt={file.name}
+              className="rounded-xl w-10 h-10 object-cover"
+            />
+          ) : (
+            <span className="rounded-xl border px-2 py-1 text-xs bg-muted text-muted-foreground">{file.name}</span>
+          )}
         </div>
       )
     })
@@ -154,6 +184,29 @@ export function ChatInput({
     setSelectedDatabase(database)
   }
 
+  function onMaterialChange(materialId: string) {
+    setSelectedMaterial(materialId)
+    const dataInfo = materialSpecimenMap[materialId] || []
+
+
+    // Extract file name from path
+
+    // filePath is the file path, fetch it and add as a File to files
+    fetch(`${apiUrl}/xafs/${materialId}`)
+      .then((res) => res.blob())
+      .then((blob) => { 
+        const file = new File([blob], materialId, { type: blob.type || 'application/octet-stream' })
+        handleFileChange((prev) => {
+          if (!isFileInArray(file, prev)) {
+            return [...prev, file]
+          }
+          return prev
+        })
+      })
+      .catch((err) => {
+        console.error('Error fetching XAFS data:', err)
+      })
+  }
   return (
     <form
       onSubmit={handleSubmit}
@@ -199,47 +252,54 @@ export function ChatInput({
             maxRows={5}
             className="text-normal px-3 resize-none ring-0 bg-inherit w-full m-0 outline-none"
             required={true}
-            placeholder="Ni_foil"
+            //placeholder="Ni_foil"
+            placeholder="Try a random material's fit pulled from the MDR XAFS database"
             disabled={isErrored}
             value={input}
             onChange={handleInputChange}
             onPaste={isMultiModal ? handlePaste : undefined}
           />
-          <div className="flex p-3 gap-2 items-center">
+            <div className="flex p-3 gap-2 items-center">
             <input
               type="file"
               id="multimodal"
               name="multimodal"
-              accept="image/*"
+              accept="image/*,.txt"
               multiple={true}
               className="hidden"
               onChange={handleFileInput}
             />
             <div className="flex items-center flex-1 gap-2">
               <TooltipProvider>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      disabled={!isMultiModal || isErrored}
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="rounded-xl h-10 w-10"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        document.getElementById('multimodal')?.click()
-                      }}
-                    >
-                      <Plus className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Add attachments</TooltipContent>
-                </Tooltip>
-                <p>Spectra, FEFF inp, cif files, images</p>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                <Button
+                  disabled={!isMultiModal || isErrored}
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="rounded-xl h-10 min-w-[140px] px-3 flex flex-row items-center justify-between"
+                  onClick={(e) => {
+                  e.preventDefault()
+                  document.getElementById('multimodal')?.click()
+                  }}
+                >
+                  <p style={{ fontSize: '0.75rem', marginRight: '4px' }}>upload spectrum</p>
+                  <Plus className="h-5 w-5" />
+                </Button>
+                </TooltipTrigger>
+                <TooltipContent>upload spectrum from local</TooltipContent>
+              </Tooltip>
+
+              <MaterialSpecimenPicker
+                materialSpecimenMap={materialSpecimenMap}
+                selectedMaterial={selectedMaterial}
+                onMaterialChange={onMaterialChange}
+              />
               </TooltipProvider>
               {files.length > 0 && filePreview}
             </div>
-                        
+
             <DataBasePicker
               databases={databasesState}
               selectedDatabase={selectedDatabase}
@@ -248,37 +308,37 @@ export function ChatInput({
 
             <div>
               {!isLoading ? (
-                <TooltipProvider>
+              <TooltipProvider>
                   <Tooltip delayDuration={0}>
                     <TooltipTrigger asChild>
-                      <Button
-                        disabled={isErrored}
-                        variant="default"
-                        size="icon"
-                        type="submit"
-                        className="rounded-xl h-10 w-10"
-                      >
-                        <ArrowUp className="h-5 w-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Send message</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                  <Button
+                  disabled={isErrored}
+                  variant="default"
+                  size="icon"
+                  type="submit"
+                  className="rounded-xl h-10 w-10"
+                  >
+                  <ArrowUp className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Send message</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               ) : (
-                <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="rounded-xl h-10 w-10"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          stop()
-                        }}
-                      >
-                        <Square className="h-5 w-5" />
-                      </Button>
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Button
+                  variant="secondary"
+                  size="icon"
+                  className="rounded-xl h-10 w-10"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    stop()
+                  }}
+                  >
+                  <Square className="h-5 w-5" />
+                  </Button>
                     </TooltipTrigger>
                     <TooltipContent>Stop generation</TooltipContent>
                   </Tooltip>

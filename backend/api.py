@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 from pathlib import Path
 from physics.physic_functions import _make_and_run_feff, make_and_run_feff,get_absorber_from_cif, load_paths, transform_paths,_fit_ffef
 
+from spectrum_database import get_datasets, get_data_by_id
+
 load_dotenv()
 app = FastAPI()
 
@@ -64,7 +66,7 @@ app.add_middleware(
 #============
 # AWS setup
 #============
-create_bucket("test-dr-xas")  # Create a bucket for storing data
+#create_bucket("test-dr-xas")  # Create a bucket for storing data
 
 
 
@@ -296,3 +298,23 @@ async def chat_endpoint(req: ChatRequest):
         except Exception as e:
             logger.error(f"Error processing chat request: {e} {cif_file}")
             raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/xafs_database")# 
+def xafs_database_endpoint():
+    """
+    Endpoint to handle XAFS database requests.
+    """
+
+    return get_datasets()
+
+@app.get("/xafs/{id}")
+def xafs_item_endpoint(id: str):
+    """
+    Endpoint to handle XAFS item requests.
+    """
+    file_paths = get_data_by_id(id)
+    if file_paths:
+        return file_paths
+    else:
+        raise HTTPException(status_code=404, detail="Item not found")
