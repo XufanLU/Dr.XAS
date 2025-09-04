@@ -1,0 +1,86 @@
+# 2007  XAFS Measurement Info File : Ver. 1.00
+#
+# General Info
+#
+Start Date Time               : 22.09.16 10:16:14.940
+Ring Current                  : 300.21 [mA]
+Initial Position              : 4.92583 [keV] 23.6639 [deg]
+Monochro. Crystal             : Si(111) 3.13553
+Measurement Type              : Quick XAFS
+Selected Measurement Mode     : No Modes selected.
+Selected Edge                 : Ti - K (4.96533 keV)
+#
+# Block
+#
+Blocks                        : 1
+Step                          : Equal in Deg
+Displayed Unit                : 0 [eV] ( 0: eV, 1: keV, 2: Angstrome, 3: deg )
+#
+# Block Parameters            : No., Start[in deg], Start[in Displayed Unit], Points, Dwell[sec]
+#
+Block                         : 0 25.0736 4665.33 4634 120.456
+Block End                     : - 19.024 6065.33 - - 
+#
+Equal Step in Deg             : NO (In Displayed Unit)
+Repeats                       : 1 [cycles]
+#
+QXAFS Dir                     : Single(Forward)
+QXAFS MeasTime                : 120.456 [s]
+QXAFS SweepTime               : 125.372 [s]
+QXAFS Motion start point      : 932498
+QXAFS Pulse start point       : 930869
+QXAFS Pulse stop point        : 713084
+QXAFS Motion end point        : 711455
+QXAFS Pulse interval          : 47
+QXAFS Pulse number            : 4634
+QXAFS dwell time              : 0.023396
+QXAFS Run Up Time             : 1.708
+#
+# Detector Info
+#
+#
+# Used Detectors              : No., Name, Id on def file, Display Mode, Metric Unit
+#
+Detector                      : 0 "I0 Quick" S077 1 [count]
+Detector                      : 1 "I1 Quick" S078 2 [count]
+Detector                      : 2 "I2 Quick" S079 2 [count]
+#
+# Detector Range              : Name, Id, Range, Min Range, Max Range
+#
+Detector Range                : "I0 Quick" S077 -6 -10 -5 
+Detector Range                : "I1 Quick" S078 -7 -10 -5 
+Detector Range                : "I2 Quick" S079 -8 -10 -5 
+#
+# Display Select Buttons      : No., Name on Button, Status (Checked/Not Checked)
+#
+Select                        : 0 "I0" Not Checked
+Select                        : 1 "I1" Cheked
+Select                        : 2 "μt" Not Checked
+Select                        : 3 "A1" Cheked
+Select                        : 4 "mu2" Not Checked
+#
+# Positions of all motors     : No., Name, Id, position [pulse], position [Metric Unit]
+#
+Motor                         : 0 "Δθ1" M001 5474 [pulse] 273.7 [asec]
+Motor                         : 1 "光学定盤 Z" M002 12622 [pulse] 0.420691 [mm]
+Motor                         : 2 "光学定盤 X" M003 62154 [pulse] 24.8616 [mm]
+Motor                         : 3 "サンプルチェンジャー X" M009 4942 [pulse] 19.768 [mm]
+Motor                         : 4 "サンプルチェンジャー Z" M010 7313 [pulse] 29.252 [mm]
+Motor                         : 5 "4軸ステージ X" M011 5974 [pulse] 2.987 [mm]
+Motor                         : 6 "4軸ステージ Z" M012 15652 [pulse] 7.826 [mm]
+Motor                         : 7 "4軸ステージ φ" M013 -63 [pulse] -0.252 [deg]
+Motor                         : 8 "4軸ステージ ω" M014 3 [pulse] 0.00459 [deg]
+Motor                         : 9 "θ" M021 932498 [pulse] 25.1189 [deg]
+Motor                         : 10 "SDD距離" M025 13750 [pulse] 55 [mm]
+Motor                         : 11 "LINCAM φ " M026 0 [pulse] 0 [mm]
+Motor                         : 12 "LINCAM X" M027 -376 [pulse] -0.376 [mm]
+Motor                         : 13 "LINCAM Z" M028 -1989 [pulse] -0.9945 [mm]
+Motor                         : 14 "シャッター in Hatch" M030 0 [pulse] 0 []
+#
+# Additional Info
+#
+#
+# Record on End of Measurement
+#
+End Date                      : 22.09.16 10:18:19.169
+Measured Points               : 4632

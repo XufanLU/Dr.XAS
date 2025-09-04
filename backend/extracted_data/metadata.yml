@@ -1,0 +1,341 @@
+data_info:
+  data_depositor:
+    organization:    Aichi SR
+    affiliation:     Aichi SR
+    name:            Aichi SR
+    role:            BL STAFF
+  contact_name:
+    organization:    Aichi SR
+    affiliation:     Aichi SR
+    name:            Aichi SR
+    role:            BL STAFF
+  access_rights:     open
+  license:           CC-BY-NC-SA
+  deposite_time:
+    create_time:     "2022-09-16 10:16:00.000"
+    update_time:     "2022-09-16 10:16:00.000"
+  title:             XAFS Std. Meas. of Ti4O7 (titanium oxide)
+  title_ja:          XAFS Std. Meas. of Ti4O7 (titanium oxide)
+  identifier:
+    pid:             work-230228-BL5S1-0047
+  related_ids:
+  - id:              
+    description:     
+  - id:              
+    description:     
+  comment:           
+  metadata_format:
+    version:         XAFS.20230203
+    schema_uri:      "https://raw.githubusercontent.com/xafs-db/xafs-schema/main/draft/20230203/xafs-schema.json"
+  measurement_methods:
+  - category:        spectroscopy
+    sub_category:    XAFS
+facility:
+  name:              Aichi SR
+  ring:
+    energy:          1.2
+    energy_unit:     GeV
+    filling_pattern: 120 continuous bunchs with 15 blank bunchs
+    filling_pattern_mode: Standard
+    start_current:   300.2
+    start_current_unit: mA
+    end_current:     300.3
+    end_current_unit: mA
+  light_source:
+    type:            BM
+    polarization:    Holizontal
+  beamline:          BL5S1
+files:
+- file:
+  - name:            Ti4O7-AichiSR-BL5S1-20220916
+  description:       experimental
+  extension:         dat
+  format:            9809
+  headerlines:       14
+  columns:
+  - name:            deg
+    unit:            deg
+    type:            raw
+    additional_data: Uncalibrated
+  - name:            obs_deg
+    unit:            deg
+    type:            raw
+    additional_data: Uncalibrated
+  - name:            dwell
+    unit:            sec
+    type:            raw
+    additional_data: Uncalibrated
+  - name:            I0
+    unit:            count
+    type:            processed
+    additional_data: Offset subtracted
+    detection:       transmission
+    reference_to_detector: I0
+  - name:            I1
+    unit:            count
+    type:            processed
+    additional_data: Offset subtracted
+    detection:       transmission
+    reference_to_detector: I1
+  - name:            I2(Ref)
+    unit:            count
+    type:            processed
+    additional_data: Offset subtracted
+    detection:       transmission
+    reference_to_detector: I2
+- file:
+  - name:            Ti4O7-AichiSR-BL5S1-20220916
+  description:       thumbnail
+  extension:         png
+  format:            image/png
+instrument:
+  arrangement:       4WS0//M0//4WS1//DCM//4WS2//M1//4WS2//M2//4WS3
+  monochromator:
+    name:            DCM
+    distance:        11820
+    distance_unit:   mm
+    type:            DCM
+    scan_mode:       Quick XAFS
+    detail:
+      crystal_material: Si
+      crystal_plane: (111)
+      crystal_d:     3.13553
+      crystal_d_unit: A
+  mirrors:
+  - name:            M0
+    distance:        9450
+    distance_unit:   mm
+    role:            collimation
+    type:            single
+    coating:         Rh
+    shape:           bend
+  - name:            M1
+    distance:        13180
+    distance_unit:   mm
+    role:            focusing
+    type:            single
+    coating:         Rh
+    shape:           bend cylindrical
+  - name:            M2
+    distance:        16245
+    distance_unit:   mm
+    role:            higher order harmonics cut
+    type:            double
+    coating:         Au
+    shape:           flat
+  slits:
+  - name:            4WS0
+    type:            4D, water cooled
+    distance:        8220
+    distance_unit:   mm
+  - name:            4WS1
+    type:            4D
+    distance:        10910
+    distance_unit:   mm
+  - name:            4WS2
+    type:            4D
+    distance:        15345
+    distance_unit:   mm
+  - name:            4WS3
+    type:            4D
+    distance:        19470
+    distance_unit:   mm
+measurement:
+  edges:
+  - element:         Ti
+    edge:            K
+  detectors:
+  - name:            IC0
+    arrangement:     IC//Current Amp.//V/F Converter//Counter
+    hardware:
+      type:          IC
+      manufacturer:  OHYO KOKEN
+      model_number:  S-1194B1
+      gases_number:  
+      gases:
+      - name:        
+        proportion:  
+      - name:        
+        proportion:  
+      applied_voltage: 1500
+      applied_voltage_unit: V
+    processing_lines:
+    - conversion_factor: 100000000
+      conversion_factor_unit: 1/pA
+      processors:
+      - processor:   Current Amp.
+        type:        Average
+        manufacturer: NF
+        model_number: CA5350
+        gain:        10
+        gain_unit:   V/A
+        time_constant: 0.00003
+        time_constant_unit: s
+      - processor:   V/F Converter
+        type:        Average
+        manufacturer: TSUJICON
+        model_number: N2VF-1H
+        gain:        10000000
+        gain_unit:   Hz/V
+        unit_id:     0
+      - processor:   Counter
+        type:        Integral
+        manufacturer: TSUJICON
+        model_number: CT16-01F
+        unit_id:     15
+  - name:            IC1
+    arrangement:     IC//Current Amp.//V/F Converter//Counter
+    hardware:
+      type:          IC
+      manufacturer:  OHYO KOKEN
+      model_number:  S-1196B1
+      gases_number:  
+      gases:
+      - name:        
+        proportion:  
+      - name:        
+        proportion:  
+      applied_voltage: 1500
+      applied_voltage_unit: V
+    processing_lines:
+    - conversion_factor: 100000000
+      conversion_factor_unit: 1/pA
+      processors:
+      - processor:   Current Amp.
+        type:        Average
+        manufacturer: NF
+        model_number: CA5350
+        gain:        10
+        gain_unit:   V/A
+        time_constant: 0.00003
+        time_constant_unit: s
+      - processor:   V/F Converter
+        type:        Average
+        manufacturer: TSUJICON
+        model_number: N2VF-1H
+        gain:        10000000
+        gain_unit:   Hz/V
+        unit_id:     1
+      - processor:   Counter
+        type:        Integral
+        manufacturer: TSUJICON
+        model_number: CT16-01F
+        unit_id:     11
+  - name:            IC1
+    arrangement:     IC//Current Amp.//V/F Converter//Counter
+    hardware:
+      type:          IC
+      manufacturer:  OHYO KOKEN
+      model_number:  S-1196B1
+      gases_number:  
+      gases:
+      - name:        
+        proportion:  
+      - name:        
+        proportion:  
+      applied_voltage: 1500
+      applied_voltage_unit: V
+    processing_lines:
+    - conversion_factor: 100000000
+      conversion_factor_unit: 1/pA
+      processors:
+      - processor:   Current Amp.
+        type:        Average
+        manufacturer: NF
+        model_number: CA5350
+        gain:        10
+        gain_unit:   V/A
+        time_constant: 0.00003
+        time_constant_unit: s
+      - processor:   V/F Converter
+        type:        Average
+        manufacturer: TSUJICON
+        model_number: N2VF-1H
+        gain:        10000000
+        gain_unit:   Hz/V
+        unit_id:     2
+      - processor:   Counter
+        type:        Integral
+        manufacturer: TSUJICON
+        model_number: CT16-01F
+        unit_id:     8
+  measured_time:
+    start_time:      "2022-09-16 10:16:14.940"
+    end_time:        "2022-09-16 10:18:19.169"
+  energy_calibration:
+    standard_sample: Cu
+    calibration_position: Cu pre-edge peak apex calibrated to 12.7183 deg (8980.106 eV)
+  tune:
+  section:
+    number:          1
+    blocks:
+    - start:         4665.33
+      start_unit:    eV
+      end:           6065.33
+      end_unit:      eV
+      delta:         0.3
+      delta_unit:    eV
+      dwell_time:    0.02
+      dwell_time_unit: s
+      sampling_number: 4634
+    data_points:     4632
+sample:
+  chemical_formula:  Ti4O7
+  name:              titanium oxide
+  supplier:          Koujundo
+  model_number:      TIO22PB
+  lot_number:        
+  CAS_number:        
+  identifier:
+    global_identifiers:
+    - global_identifier: 
+    local_identifiers:
+    - local_identifier: 
+  phase:             
+  purity:            
+  shape:
+    type:            pellet
+    size:
+      type:          thickness
+      value:         0.5
+      unit:          mm
+  create_time:       "2020-05-26"
+  contact_name:
+    organization:    
+    affiliation:     
+    name:            
+    role:            
+   
+  condition:
+    temperature:
+      value:         25
+      unit:          ℃
+    conditions:
+    - name:          
+      types:
+      - type:        
+      value:         
+      unit:          
+      additional_data: 
+reference:
+  chemical_formula:  Ti
+  name:              titanium
+  supplier:          
+  model_number:      
+  lot_number:        
+  CAS_number:        
+  identifier:
+    global_identifiers:
+    - global_identifier: 
+    local_identifier:
+    - local_identifier: 
+  phase:             solid
+  purity:            
+  shape:
+    type:            foil
+    size:
+      type:          thickness
+      value:         3
+      unit:          μm
+  create_time:       ""
+  additional_data:   

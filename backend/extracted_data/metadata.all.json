@@ -1,0 +1,206 @@
+{
+    "data_info": {
+        "identifier": {
+            "pid": "spring8.44c4e5bd-dfc4-4e6d-ae40-257dfa488cd0",
+            "proposal_number": "2014S0000",
+            "register_name": "/SPring-8/BL14B2/XAFS_Standard/Ni/K/111/NiMoO4"
+        },
+        "date": {
+            "create_time": "2020-01-15 19:44:17",
+            "update_time": "2021-03-19 18:02:51"
+        },
+        "access_rights": "open",
+        "contact_name": {
+            "affiliation": {
+                "organization": "JASRI"
+            },
+            "name": "Industrial Application and Partnership Division",
+            "role": "organization"
+        },
+        "data_depositor": {
+            "affiliation": {
+                "organization": "JASRI"
+            },
+            "name": "Hironori Ofuchi"
+        },
+        "facility": "SPring-8",
+        "class_name": "BL14B2",
+        "disk_name": "XAFS_Standard",
+        "title_ja": "標準試料",
+        "title": "Standard Sample"
+    },
+    "facility": {
+        "ring": {
+            "end_current": 99.5,
+            "end_current_unit": "mA",
+            "energy": 8.0,
+            "energy_unit": "GeV",
+            "filling_pattern": "203 bunches",
+            "filling_pattern_mode": "A",
+            "start_current": 99.5,
+            "start_current_unit": "mA"
+        }
+    },
+    "sample": [
+        {
+            "chemical_formula": "NiMoO4",
+            "lot_number": "3640721",
+            "model_number": "NIO05PB",
+            "name": "Nickel molybdate",
+            "supplier": "KOJUNDO CHEMICAL LABORATORY"
+        }
+    ],
+    "measurement": {
+        "date": {
+            "end_time": "2013-11-27 00:24:00",
+            "start_time": "2013-11-27 00:24:00"
+        },
+        "method": {
+            "absorption_edge": "Ni K-edge",
+            "category": "spectroscopy",
+            "detection": "Transmission( 2)",
+            "sub_category": "XAFS"
+        },
+        "scan_mode": "angle axis (1)"
+    },
+    "instrument": {
+        "monochrometer": {
+            "distance": 3.13551,
+            "distance_unit": "A",
+            "net_plane": "Si(111)",
+            "section": [
+                {
+                    "start_energy": 14.4,
+                    "start_energy_unit": "deg",
+                    "step_energy": -0.0006,
+                    "step_energy_unit": "deg",
+                    "end_energy": 11.5,
+                    "end_energy_unit": "deg",
+                    "dwell_time": 10.0,
+                    "dwell_time_unit": "ms"
+                }
+            ]
+        },
+        "slit": [
+            {
+                "name": "4Dslit",
+                "vertical_size": 1.0,
+                "vertical_size_unit": "mm",
+                "horizontal_size": 5.0,
+                "horizontal_size_unit": "mm"
+            }
+        ],
+        "xafs": {
+            "I0": {
+                "element": [
+                    {
+                        "type": "Ion Chamber",
+                        "gas": "N2 100%",
+                        "HV": 1000.0,
+                        "HV_unit": "V",
+                        "amp_gain": 100000000.0,
+                        "amp_gain_unit": "V/A"
+                    }
+                ],
+                "element_number": 1
+            },
+            "I1": {
+                "element": [
+                    {
+                        "type": "Ion Chamber",
+                        "gas": "N2 80% + Ar 20%",
+                        "HV": 1000.0,
+                        "HV_unit": "V",
+                        "amp_gain": 100000000.0,
+                        "amp_gain_unit": "V/A"
+                    }
+                ],
+                "element_number": 1
+            }
+        }
+    },
+    "local": {
+        "measurement_time": 48.0,
+        "measurement_time_unit": "sec",
+        "xafs_filename_list": [
+            "Ni-K_NiMoO4_Si111_10ms_131127.dat"
+        ],
+        "xafs_processed_data_format": [
+            {
+                "extension": "ex3",
+                "format": "Rex2000",
+                "columns": [
+                    {
+                        "name": "photon energy",
+                        "unit": "eV",
+                        "formula": "12398/(2*D*math.sin(columns[1]))",
+                        "input": {
+                            "columns": "xafs_raw_data_format[0].columns",
+                            "D": "xafs_raw_data_format[0].parameter.D"
+                        }
+                    },
+                    {
+                        "name": "absorption coefficient mu*t",
+                        "formula": "math.log(columns[3]/columns[4])",
+                        "input": {
+                            "columns": "xafs_raw_data_format[0].columns"
+                        }
+                    }
+                ]
+            },
+            {
+                "extension": "txt",
+                "format": "Athena",
+                "columns": [
+                    {
+                        "name": "photon energy",
+                        "unit": "eV",
+                        "formula": "12398/(2*D*math.sin(columns[1]))",
+                        "input": {
+                            "columns": "xafs_raw_data_format[0].columns",
+                            "D": "xafs_raw_data_format[0].parameter.D"
+                        }
+                    },
+                    {
+                        "name": "absorption coefficient mu*t",
+                        "formula": "math.log(columns[3]/columns[4])",
+                        "input": {
+                            "columns": "xafs_raw_data_format[0].columns"
+                        }
+                    }
+                ]
+            }
+        ],
+        "xafs_raw_data_format": [
+            {
+                "extension": "dat",
+                "format": "PF9809",
+                "parameter": {
+                    "D": "monochrometer distance"
+                },
+                "columns": [
+                    {
+                        "name": "monochrometer angle (setting value of PC)",
+                        "unit": "deg"
+                    },
+                    {
+                        "name": "monochrometer angle (encoder value)",
+                        "unit": "deg"
+                    },
+                    {
+                        "name": "dwell time",
+                        "unit": "sec"
+                    },
+                    {
+                        "name": "intensity I0",
+                        "unit": "count"
+                    },
+                    {
+                        "name": "intensity I1",
+                        "unit": "count"
+                    }
+                ]
+            }
+        ]
+    }
+}
