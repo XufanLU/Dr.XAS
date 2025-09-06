@@ -11,6 +11,7 @@ from agents import (
     InputGuardrailTripwireTriggered,
     Handoff,
 )
+from requests import post
 from aws import create_bucket
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -25,6 +26,8 @@ from aws import (
 from dotenv import load_dotenv
 import os
 
+
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,6 +35,8 @@ from pathlib import Path
 from physics.physic_functions import _make_and_run_feff, make_and_run_feff,get_absorber_from_cif, load_paths, transform_paths,_fit_ffef
 
 from spectrum_database import get_datasets, get_data_by_id
+from material_database import search_materials,get_material_by_id
+from chemical_formula import get_chemical_formula
 
 load_dotenv()
 app = FastAPI()
@@ -318,3 +323,23 @@ def xafs_item_endpoint(id: str):
         return file_paths
     else:
         raise HTTPException(status_code=404, detail="Item not found")
+
+@app.get("/chemical_formula/{compound_name}")
+def chemical_formula_endpoint(compound_name: str):
+    """
+    Endpoint to get the chemical formula of a compound.
+    """
+    return get_chemical_formula(compound_name)  
+
+@app.get("/material_database/{chemsys}")
+def search_material_database(chemsys: str):
+    """
+    Endpoint to get the material database for a chemical system.
+    """
+    material_id=search_materials(chemsys)
+    if material_id is None:
+        raise HTTPException(status_code=404, detail="No material found")
+    result=get_material_by_id(material_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="No CIF related to the material id found")
+    return result

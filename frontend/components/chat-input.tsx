@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/tooltip'
 import { isFileInArray } from '@/lib/utils'
 import { ArrowUp, Paperclip, Plus, Square, X } from 'lucide-react'
-import { SetStateAction, useEffect, useMemo, useState } from 'react'
+import { SetStateAction, use, useEffect, useMemo, useState } from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import { DataBasePicker} from './database-picker'
 import { MaterialSpecimenPicker, MaterialSpecimenMap } from './material-specimen-picker'
@@ -85,6 +85,10 @@ export function ChatInput({
 
   // Fetch material/specimen map from API
   const [materialSpecimenMap, setMaterialSpecimenMap] = useState<MaterialSpecimenMap>({})
+  const [chemicalFormula, setChemicalFormula] = useState<string>('')
+
+
+
   useEffect(() => {
     async function fetchMaterialSpecimenMap() {
       try {
@@ -103,6 +107,26 @@ export function ChatInput({
   }, [])
   const [selectedMaterial, setSelectedMaterial] = useState<string>('')
 
+  // Fetch chemical formula for a material
+  async function fetchChemicalFormula(materialName: string) {
+    try {
+      const res = await fetch(`${apiUrl}/chemical_formula/${encodeURIComponent(materialName)}`)
+      if (!res.ok) throw new Error('Failed to fetch chemical formula')
+      const data = await res.json()
+      setChemicalFormula(data)
+    } catch (err) {
+      setChemicalFormula('')
+    }
+  }
+
+  // Update chemical formula when selectedMaterial changes
+  useEffect(() => {
+    if (selectedMaterial) {
+      fetchChemicalFormula(selectedMaterial)
+    } else {
+      setChemicalFormula('')
+    }
+  }, [selectedMaterial])
 
 
 
@@ -186,6 +210,9 @@ export function ChatInput({
 
   function onMaterialChange(materialId: string) {
     setSelectedMaterial(materialId)
+
+    fetchChemicalFormula(materialId)
+
     const dataInfo = materialSpecimenMap[materialId] || []
 
 
@@ -269,43 +296,125 @@ export function ChatInput({
               className="hidden"
               onChange={handleFileInput}
             />
+
             <div className="flex items-center flex-1 gap-2">
               <TooltipProvider>
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
-                <Button
-                  disabled={!isMultiModal || isErrored}
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="rounded-xl h-10 min-w-[140px] px-3 flex flex-row items-center justify-between"
-                  onClick={(e) => {
-                  e.preventDefault()
-                  document.getElementById('multimodal')?.click()
-                  }}
-                >
-                  <p style={{ fontSize: '0.75rem', marginRight: '4px' }}>upload spectrum</p>
-                  <Plus className="h-5 w-5" />
-                </Button>
-                </TooltipTrigger>
-                <TooltipContent>upload spectrum from local</TooltipContent>
-              </Tooltip>
+                {/* Spectrum upload button */}
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      disabled={!isMultiModal || isErrored}
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="rounded-xl h-10 min-w-[140px] px-3 flex flex-row items-center justify-between"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        document.getElementById('multimodal')?.click()
+                      }}
+                    >
+                      <p style={{ fontSize: '0.75rem', marginRight: '4px' }}>upload spectrum</p>
+                      <Plus className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  {/* <TooltipContent>upload spectrum from local</TooltipContent> */}
+                </Tooltip>
 
-              <MaterialSpecimenPicker
-                materialSpecimenMap={materialSpecimenMap}
-                selectedMaterial={selectedMaterial}
-                onMaterialChange={onMaterialChange}
-              />
+                
+                <MaterialSpecimenPicker
+                  materialSpecimenMap={materialSpecimenMap}
+                  selectedMaterial={selectedMaterial}
+                  onMaterialChange={onMaterialChange}
+                />
               </TooltipProvider>
               {files.length > 0 && filePreview}
             </div>
+            <TooltipProvider>
+              {/* cif upload button for material database */}
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Button
+                    disabled={!isMultiModal || isErrored}
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="rounded-xl h-10 min-w-[140px] px-3 flex flex-row items-center justify-between"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        document.getElementById('cif-upload')?.click()
+                      }}
+                    >
+                      <p style={{ fontSize: '0.75rem', marginRight: '4px' }}>upload cif</p>
+                     <Plus className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  {/* <TooltipContent>upload cif</TooltipContent> */}
+                </Tooltip>
+                {/* Hidden cif file input */}
+                <input
+                  type="file"
+                  id="cif-upload"
+                  name="cif-upload"
+                  accept=".cif"
+                  multiple={false}
+                  className="hidden"
+                  onChange={(e) => {
+                    const cifFile = e.target.files?.[0]
+                    if (cifFile) {
+                      handleFileChange((prev) => {
+                        if (!isFileInArray(cifFile, prev)) {
+                          return [...prev, cifFile]
+                        }
+                        return prev
+                      })
+                    }
+                  }}
+                />
+   
 
-            <DataBasePicker
+            <div className="relative min-w-[120px]">
+              <input
+                type="text"
+                value={chemicalFormula}
+                onChange={e => setChemicalFormula(e.target.value)}
+                placeholder="search cif by formula"
+                className="border rounded pr-10 pl-2 py-1 text-sm w-full bg-gray-100"
+              />
+              <button
+                type="button"
+                aria-label="search cif by formula"
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-200 focus:outline-none"
+                style={{ height: '1.75rem', width: '1.75rem' }}
+                onClick={async () => {
+                  if (!chemicalFormula) return;
+                  try {
+                    const res = await fetch(`${apiUrl}/material_database/${encodeURIComponent(chemicalFormula)}`);
+                    if (!res.ok) throw new Error('No CIF found');
+                    const blob = await res.blob();
+                    const file = new File([blob], `${chemicalFormula}.cif`, { type: blob.type || 'application/octet-stream' });
+                    handleFileChange((prev) => {
+                      if (!isFileInArray(file, prev)) {
+                        return [...prev, file];
+                      }
+                      return prev;
+                    });
+                  } catch (err) {
+                    alert('CIF file not found for this formula. Please upload manually.');
+                  }
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                </svg>
+              </button>
+            </div>
+
+              {/* <DataBasePicker
               databases={databasesState}
               selectedDatabase={selectedDatabase}
               onSelectedDatabaseChange={onSelectedDatabaseChange}
-            />
-
+            /> */}
+   </TooltipProvider>
             <div>
               {!isLoading ? (
               <TooltipProvider>
