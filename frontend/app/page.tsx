@@ -24,19 +24,16 @@ import { ChevronsLeft } from 'lucide-react'
 import { usePostHog } from 'posthog-js/react'
 import { SetStateAction, useEffect, useState } from 'react'
 import { useLocalStorage } from 'usehooks-ts'
+import { json } from 'stream/consumers'
 
 export default function Home() {
   const [chatInput, setChatInput] = useLocalStorage('chat', '')
   const [files, setFiles] = useState<File[]>([])
-  const [selectedTemplate, setSelectedTemplate] = useState<'auto' | TemplateId>(
-    'auto',
-  )
-  const [languageModel, setLanguageModel] = useLocalStorage<LLMModelConfig>(
-    'languageModel',
-    {
-      model: 'claude-3-5-sonnet-latest',
-    },
-  )
+  const [selectedTemplate, setSelectedTemplate] = useState<'auto' | TemplateId>('auto')
+  const [languageModel, setLanguageModel] = useLocalStorage<LLMModelConfig>('languageModel', { model: 'claude-3-5-sonnet-latest' })
+  // Add lifted state for materials and xasIDs
+  const [materials, setMaterials] = useState<string[]>([])
+  const [xasIDs, setXasIDs] = useState<string[]>([])
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';// todo : remove this in production
 
   const posthog = usePostHog()
@@ -189,7 +186,16 @@ export default function Home() {
   // Format the request according to your API's requirements
   const requestData = {
     conversation_id: "123", // You can make this dynamic if needed
-    message: chatInput
+    message: chatInput,
+    materials: materials,
+    xasIDs: xasIDs,
+    files: await Promise.all(files.map(async (file) => {
+      const content = await file.text();
+      return {
+        name: file.name,
+        content: content,
+      };
+    })),
   }
 
   console.log('API URL:', apiUrl);
@@ -230,6 +236,7 @@ export default function Home() {
       body: JSON.stringify(requestData),
       signal: controller.signal,
     });
+    console.log('request:', requestData);
 
     clearTimeout(timeoutId);
 
@@ -432,6 +439,10 @@ export default function Home() {
                   isMultiModal={currentModel?.multiModal || false}
                   files={files}
                   handleFileChange={handleFileChange}
+                  materials={materials}
+                  setMaterials={setMaterials}
+                  xasIDs={xasIDs}
+                  setXasIDs={setXasIDs}
                 >
                   {/* <ChatPicker
                     templates={templates}

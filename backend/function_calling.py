@@ -100,7 +100,7 @@ class Report(BaseModel):
 
 
 @function_tool
-def fit_ffef(name: str, params: Param, paths: FEFF_Path) -> Report:
+def fit_ffef(name: str, params: Param, paths: FEFF_Path,xas_path:str) -> Report:
     """
     Fit XAFS data using the provided parameters to FEFF paths
     """
@@ -131,10 +131,10 @@ def fit_ffef(name: str, params: Param, paths: FEFF_Path) -> Report:
         kmin=3, kmax=13, rmin=1, rmax=5.0, kweight=[1, 2, 3], dk=1, window="Hanning"
     )  # TODO : this can also be given as a parameter. hyper parameter. => we can use this for now
     data = (
-        load_prj()
+        load_prj(xas_path)
     )  # this function loads the data from the project file, which is used for the fit
     # --- Create a dataset for the fit ---
-    dset = feffit_dataset(data=data[name], transform=trans, pathlist=paths_dict)
+    dset = feffit_dataset(data=data, transform=trans, pathlist=paths_dict)
 
     result = feffit(params_group, [dset])
 
@@ -144,21 +144,21 @@ def fit_ffef(name: str, params: Param, paths: FEFF_Path) -> Report:
 
 
 
-    viz(name,paths_dict,result)
+    viz(name,paths_dict,result,xas_path=xas_path)  # this is the function that visualizes the result
 
     return Report(fitted_parameter=fitted_parameters, path_parameter=path_parameters)
 
 
 
 
-def viz(name,path_list,result):
+def viz(name,path_list,result,xas_path:str  ):
     """
     Visualize the result
     """
 
     print("Visualizing the result...")
 
-    data=load_prj()
+    data=load_prj(xas_path=xas_path)
 
     datalist = [name]
 

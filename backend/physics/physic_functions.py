@@ -24,7 +24,11 @@ from larch.xafs import (
     feffit,
     feffit_report,
     cauchy_wavelet,
+    pre_edge,
+    autobk,
+    xftf,
 )
+from larch.xafs import pre_edge, autobk, xftf
 from larch.fitting import param, guess, param_group
 from larch.io import read_ascii
 
@@ -39,28 +43,29 @@ def get_absorber_from_cif(cif_file: str) -> str:
     return absorber
 
 
-def make_and_run_feff(file_name, absorber, radius=5.0, edge="K"):
+def make_and_run_feff(cif_file_name, absorber, radius=5.0, edge="K"):
     """
     Run FEFF on a single CIF file.
     """
-    origin = Path.cwd() / "physics/cif_files"
-    cif_file = origin / f"{file_name}.cif"
-    output_dir = Path.cwd() / "physics/FEFF_paths" / file_name
+    origin = Path.cwd() / "material_cif"
+    cif_file = origin / f"{cif_file_name}.cif"
+    output_dir = Path.cwd() / "physics/FEFF_paths" / cif_file_name
     _make_and_run_feff(
         str(cif_file), str(output_dir), absorber=absorber, radius=radius, edge=edge
     )
-    return Path.cwd() / "physics/FEFF_paths" / file_name
+    return Path.cwd() / "physics/FEFF_paths" / cif_file_name
 
 
 def _make_and_run_feff(
-    cif_file, out_dir, absorber="Ni", radius=5.0, edge="K", feff_exe="feff8l"
+    cif_file, out_dir, absorber="", radius=5.0, edge="K", feff_exe="feff8l"
 ):
-    
+
     try:
         os.makedirs(out_dir, exist_ok=True)
 
         # 1) Parse CIF → structure
         struct = CifParser(cif_file).get_structures()[0]
+        print(f"Read structure with {len(struct)} atoms from {cif_file}")
 
         # 2) Generate basic feff.inp with ff2chi=1
         feff_set = FEFFDictSet(
@@ -110,7 +115,7 @@ def _make_and_run_feff(
         print("Done; check for feff0001.dat … in", out_dir)
     except Exception as e:
         print(f"_make_and_run_feff: {e}")
-        raise e 
+        raise e
 
 
 def load_paths(feff_dir, amp_ratio=None, r_max=None, verbose=False):
@@ -218,7 +223,6 @@ def transform_paths(paths):
     for path_key, path_str in paths.items():
         path = feffpath(
             path_str,
-            degen="degen",
             s02="amp",
             e0="e0",
             deltar="alpha * reff",
@@ -229,23 +233,63 @@ def transform_paths(paths):
     return path_list
 
 
-def load_prj():
+def load_prj(xas_path: str):
+    """
+    Load a project file, supporting both Athena .prj and plain text/ascii formats.
+    """
+    # filename = (
+    #     Path.cwd() / "physics/Ni_edges_athena_project_file.prj"
+    # )
 
-    athena_prj = (
-        Path.cwd() / "physics/Ni_edges_athena_project_file.prj"
-    )  # where do we get this file?  # TODO could be txt / prj. ....
-    data = larch.io.read_athena(
-        athena_prj,
-        match=None,
-        do_preedge=True,  #
-        do_bkg=True,
-        do_fft=True,
-        use_hashkey=False,
+    foldername = Path.cwd() / "online_xas_data" / Path(xas_path)
+    # checke the folder exists
+    if not foldername.exists():
+        raise FileNotFoundError(f"Folder {foldername} does not exist.")
+    # find the .prj file in the folder
+    filenames = list(foldername.glob("*.dat")
     )
+    if not filenames:
+        raise FileNotFoundError(f"No .dat file found in folder {foldername}.")
+    filename = filenames[0]  # take the first file found
+    print(f"Loading project file: {filename}")
+    if filename.suffix.lower() == ".prj":
+        data = larch.io.read_athena(
+            filename,
+            match=None,
+            do_preedge=True,
+            do_bkg=True,
+            do_fft=True,
+            use_hashkey=False,
+        )
+    elif filename.suffix.lower() == ".dat":
+        # Assume plain text, xmu, or ascii spectrum
+        data = larch.io.read_ascii(
+            filename,
+            labels=("ang_c", "ang_o", "time", "i0", "itrans")
+        )
+        hc = 12398.42
+        d = 1.63747
+        theta = np.radians(data.ang_c)   # angle in radians
+        energy = hc / (2 * d * np.sin(theta))
+
+        data.energy = energy
+        data.mu = -np.log(data.itrans / data.i0)
+
+        # Step 3: process for EXAFS
+        pre_edge(data)
+        autobk(data)
+        xftf(data)
+
+
+    else:
+        # Assume plain text, xmu, or ascii spectrum
+        raise ValueError("Unsupported file format. Please provide a .prj or .dat file.")
+    # TODO for "dat"
+
     return data
 
 
-def _fit_ffef(name: str, params: dict, pathlist: list):
+def _fit_ffef(name: str, params: dict, pathlist: list, xas_path: str):
     """
     Run a single fit on a FEFF path.
     """
@@ -254,7 +298,7 @@ def _fit_ffef(name: str, params: dict, pathlist: list):
 
     # --- Define fourier transform ---
 
-    params = param_group(
+    fit_params = param_group(
         amp=param(params["amp"], vary=True),
         e0=param(params["e0"], vary=True),
         alpha=param(params["alpha"], vary=True),
@@ -268,13 +312,13 @@ def _fit_ffef(name: str, params: dict, pathlist: list):
     trans = feffit_transform(
         kmin=3, kmax=13, rmin=1, rmax=5.0, kweight=[1, 2, 3], dk=1, window="Hanning"
     )  # TODO : this can also be given as a parameter. hyper parameter. => we can use this for now
-    data = (
-        load_prj()
+    data = load_prj(
+        xas_path=xas_path
     )  # this function loads the data from the project file, which is used for the fit
-    # --- Create a dataset for the fit ---
-    dset = feffit_dataset(data=data[name], transform=trans, pathlist=pathlist)
+    # Do pre-edge subtraction
+    dset = feffit_dataset(data=data, transform=trans, pathlist=pathlist)
 
-    result = feffit(params, [dset])
+    result = feffit(fit_params, [dset])
     return result
 
 
@@ -377,15 +421,14 @@ def extract_path_parameters(result) -> List:
     return path_summaries
 
 
-def viz(name,path_list,result):
+def viz(name, path_list, result,xas_path=None):
     """
     Visualize the result
     """
 
-    data=load_prj()
+    data = load_prj(xas_path)
 
     datalist = [name]
-
 
     # cmap = plt.cm.nipy_spectral
     cmap = plt.cm.magma
@@ -398,55 +441,73 @@ def viz(name,path_list,result):
 
     kmax = 10
 
-
-
     for i, sample in enumerate(datalist):
-        plt.figure(figsize=(10,5))
-        
+        plt.figure(figsize=(10, 5))
+
         mod = result.datasets[i].model
         dat = result.datasets[i].data
-        data_chik  = dat.chi * dat.k**kweight
+        data_chik = dat.chi * dat.k**kweight
         model_chik = mod.chi * mod.k**kweight
 
         plt.subplot(131)
-        plt.plot(dat.k, data_chik, color='navy', label='data', alpha=0.6, lw=2)
-        plt.plot(mod.k, model_chik, color='crimson', label='fit', alpha=0.6, lw=2)
+        plt.plot(dat.k, data_chik, color="navy", label="data", alpha=0.6, lw=2)
+        plt.plot(mod.k, model_chik, color="crimson", label="fit", alpha=0.6, lw=2)
 
         for i, path_i in enumerate(list(path_list.values())[:usepath]):
             path_i_data = ff2chi([path_i], params=result.paramgroup)
-            path_chik  = path_i_data.chi * path_i_data.k**kweight
-            path_name = path_i.filename.split('_')[-1].split('.')[0]
-            
-            plt.plot(path_i_data.k,
-                    path_chik - step*(i+1),
-                    label=path_name, 
-                    color=colors[i], 
-                    alpha=0.6, lw=1.5, ls='-.')
-            
+            path_chik = path_i_data.chi * path_i_data.k**kweight
+            path_name = path_i.filename.split("_")[-1].split(".")[0]
+
+            plt.plot(
+                path_i_data.k,
+                path_chik - step * (i + 1),
+                label=path_name,
+                color=colors[i],
+                alpha=0.6,
+                lw=1.5,
+                ls="-.",
+            )
+
         plt.xlabel("$k$ [$\\AA^{-1}$]", fontsize=12)
         plt.ylabel("$k^2 \\chi (k)$ [$\\AA^{-2}$]", fontsize=12)
         plt.xlim(0, 9.5)
         # plt.ylim(-4, 1.25)
 
         plt.subplot(132)
-        xftf(dat, kmin=3, kmax=kmax, kweight=kweight, dk=1, window='hanning', rmax_out=12)
-        xftf(mod, kmin=3, kmax=kmax, kweight=kweight, dk=1, window='hanning', rmax_out=12)
+        xftf(
+            dat, kmin=3, kmax=kmax, kweight=kweight, dk=1, window="hanning", rmax_out=12
+        )
+        xftf(
+            mod, kmin=3, kmax=kmax, kweight=kweight, dk=1, window="hanning", rmax_out=12
+        )
 
-        plt.plot(dat.r, dat.chir_mag, color='navy', label='data', alpha=0.6, lw=2)
-        plt.plot(mod.r, mod.chir_mag, color='crimson', label='fit', alpha=0.6, lw=2)
+        plt.plot(dat.r, dat.chir_mag, color="navy", label="data", alpha=0.6, lw=2)
+        plt.plot(mod.r, mod.chir_mag, color="crimson", label="fit", alpha=0.6, lw=2)
 
         for i, path_i in enumerate(list(path_list.values())[:usepath]):
             path_i_data = ff2chi([path_i], params=result.paramgroup)
-            path_chik  = path_i_data.chi * path_i_data.k**kweight
-            xftf(path_i_data, kmin=3.5, kmax=9.5, kweight=kweight, dk=1, window='hanning', rmax_out=12)
-            path_name = path_i.filename.split('_')[-1].split('.')[0]
-            
-            plt.plot(path_i_data.r,
-                    path_i_data.chir_mag - step*(i+1),
-                    label=path_name, 
-                    color=colors[i], 
-                    alpha=0.6, lw=1.5, ls='-.')
-            
+            path_chik = path_i_data.chi * path_i_data.k**kweight
+            xftf(
+                path_i_data,
+                kmin=3.5,
+                kmax=9.5,
+                kweight=kweight,
+                dk=1,
+                window="hanning",
+                rmax_out=12,
+            )
+            path_name = path_i.filename.split("_")[-1].split(".")[0]
+
+            plt.plot(
+                path_i_data.r,
+                path_i_data.chir_mag - step * (i + 1),
+                label=path_name,
+                color=colors[i],
+                alpha=0.6,
+                lw=1.5,
+                ls="-.",
+            )
+
         plt.title(sample)
         plt.xlabel("$R$ [$\\AA$]", fontsize=12)
         plt.ylabel("$|\\chi(R)|$ [$\\AA ^{-3}$]", fontsize=12)
@@ -454,40 +515,56 @@ def viz(name,path_list,result):
         # plt.ylim(-4, 1.25)
 
         plt.subplot(133)
-        
-        plt.plot(dat.r, dat.chir_re, color='navy', label='data', alpha=0.6, lw=2)
-        plt.plot(mod.r, mod.chir_re, color='crimson', label='fit', alpha=0.6, lw=2)
+
+        plt.plot(dat.r, dat.chir_re, color="navy", label="data", alpha=0.6, lw=2)
+        plt.plot(mod.r, mod.chir_re, color="crimson", label="fit", alpha=0.6, lw=2)
 
         for i, path_i in enumerate(list(path_list.values())[:usepath]):
             path_i_data = ff2chi([path_i], params=result.paramgroup)
-            path_chik  = path_i_data.chi * path_i_data.k**kweight
-            xftf(path_i_data, kmin=3.5, kmax=9.5, kweight=kweight, dk=1, window='hanning', rmax_out=12)
-            path_name = path_i.filename.split('_')[-1].split('.')[0]
-            
-            plt.plot(path_i_data.r,
-                    path_i_data.chir_re - step*(i+1),
-                    label=path_name, 
-                    color=colors[i], 
-                    alpha=0.6, lw=1.5, ls='-.')
-            
+            path_chik = path_i_data.chi * path_i_data.k**kweight
+            xftf(
+                path_i_data,
+                kmin=3.5,
+                kmax=9.5,
+                kweight=kweight,
+                dk=1,
+                window="hanning",
+                rmax_out=12,
+            )
+            path_name = path_i.filename.split("_")[-1].split(".")[0]
+
+            plt.plot(
+                path_i_data.r,
+                path_i_data.chir_re - step * (i + 1),
+                label=path_name,
+                color=colors[i],
+                alpha=0.6,
+                lw=1.5,
+                ls="-.",
+            )
+
         plt.xlabel("$R$ [$\\AA$]", fontsize=12)
         plt.ylabel("Re[$\\chi(R)$] [$\\AA ^{-3}$]", fontsize=12)
         plt.xlim(0, 5)
         # plt.ylim(-4, 1.25)
-        plt.legend(loc='upper right', frameon=False)
-        plt.tight_layout();
+        plt.legend(loc="upper right", frameon=False)
+        plt.tight_layout()
 
-        origin = Path.cwd() 
+        origin = Path.cwd()
 
-        save_folder = 'physics/viz/'
+        save_folder = "physics/viz/"
         save_path = origin / save_folder / f"{sample}_all.jpg"
-        plt.savefig(save_path, dpi = 300)
+        plt.savefig(save_path, dpi=300)
 
 
 if __name__ == "__main__":
-    name = "Ni_foil"  # user input file
+#    name = "Ni_foil"  # user input file
+    # /Users/xufanlu/Projects/MT/Dr.XAFS/backend/material_cif/mp-1072089.cif
+    material_id = "mp-1072089"
+    material = "Co"  # from chat
+    xas_id = "ff693629-a57c-4475-aaa8-5a4a815db425"  # from chat
 
-    absorber = "Ni"  # also user input? TODO . prj => recognize automatically.
+  # absorber = "Ni"  # also user input? TODO . prj => recognize automatically.
     amp_ratio = 0.1
     r_max = 5.0
     verbose = True
@@ -498,7 +575,7 @@ if __name__ == "__main__":
     e0 = 0.0  # initial guess for the energy shift
     alpha = 0  # initial guess for the Debye-Waller factor
     # t = 300.0  # initial guess for the temperature (if needed)
-    # theta = 400.0  # initial guess for the Debye temperature (if needed)
+    # theta = 400.0v  # initial guess for the Debye temperature (if needed)
     sigma2 = 0.001  # initial guess for the mean square displacement
     sigma2_2 = 0.001  # initial guess for the second moment
     sigma2_4 = 0.001  # initial guess for the fourth moment
@@ -512,17 +589,17 @@ if __name__ == "__main__":
         "sigma2_4": sigma2_4,
     }  # dict of parameter initial values
 
-    dat_paths = make_and_run_feff(name, absorber)
+    dat_paths = make_and_run_feff(material_id, material)
     dat_paths_str = load_paths(
         dat_paths, amp_ratio, r_max, verbose=True
     )  # of verbose == True, prints a table with the paths
     path_list = transform_paths(dat_paths_str)  # type?
 
     result = _fit_ffef(
-        name, params, path_list
+        material_id, params, path_list, xas_path=xas_id
     )  # this is the function that runs the fit on the paths
 
-    # report(result) # this is the function that prints the report of the fit results
+    report(result) # this is the function that prints the report of the fit results
     # print("############################")
     # print("line 400")
     # extract_path_parameters(result)
@@ -532,4 +609,4 @@ if __name__ == "__main__":
     #     result
     # )  # this is the function that extracts the fitted parameters from the result of the fit#
 
-    viz(name,path_list,result)
+    viz(material_id, path_list, result,xas_path=xas_id)  # this is the function that visualizes the result

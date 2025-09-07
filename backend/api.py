@@ -16,7 +16,7 @@ from aws import create_bucket
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from uuid import uuid4
-from agent import create_agent
+from agent import create_agent, create_agent_2
 from aws import (
     upload_file,
     download_file,
@@ -80,10 +80,18 @@ app.add_middleware(
 #============
 
 
+
+# For file uploads in chat
+class FileItem(BaseModel):
+    name: str
+    content: str
+
 class ChatRequest(BaseModel):
     conversation_id: Optional[str] = None
-    agent_id: Optional[str] = None
     message: str
+    materials: Optional[list[str]] = None
+    xasIDs: Optional[list[str]] = None
+    files: Optional[list[FileItem]] = None
 
 
 # =========================
@@ -158,7 +166,7 @@ async def make_feff_endpoint():
         origin = Path.cwd() / "physics/cif_files"
         cif_file = origin / f"{file_name}.cif"
         output_dir = Path.cwd() / "physics/FEFF_paths" / file_name
-        path=make_and_run_feff(file_name="Ni_foil", absorber="Ni")
+        path=make_and_run_feff(cif_file_name="Ni_foil", absorber="Ni")
 
         return {"message": "FEFF calculation created successfully. {str(path)}" }
     except Exception as e:
@@ -171,7 +179,7 @@ async def get_feff_paths():
     Endpoint to get the FEFF paths.
     """
     try:
-        dat_paths=make_and_run_feff(file_name="Ni_foil", absorber="Ni")
+        dat_paths=make_and_run_feff(cif_file_name="Ni_foil", absorber="Ni")
         r_max = 5.0
         verbose = True
 
@@ -238,25 +246,25 @@ async def fit_feff():
 
 @app.post("/chat")# need conversation ifd 
 async def chat_endpoint(req: ChatRequest):
-    """
-    Endpoint to handle chat messages.
-    """
+        """
+        Endpoint to handle chat messages.
+        """
  
-    is_new = not req.conversation_id or conversation_store.get(req.conversation_id) is None
-    if is_new:
-        conversation_id: str = uuid4().hex
+    # is_new = not req.conversation_id or conversation_store.get(req.conversation_id) is None
+    # if is_new:
+    #     conversation_id: str = uuid4().hex
 
-    else:
-        conversation_id = req.conversation_id  # type: ignore
-        # use the old agent
+    # else:
+    #     conversation_id = req.conversation_id  # type: ignore
+    #     # use the old agent
 
 
 
-    # Check if agent already exists with agent_id
-    if req.agent_id and conversation_store.get(req.agent_id):
-        agent_id = agent_store.get(req.agent_id)
-        # start the conversation with the existing agent . Take care the prompt! 
-    else:
+    # # Check if agent already exists with agent_id
+    # if req.agent_id and conversation_store.get(req.agent_id):
+    #     agent_id = agent_store.get(req.agent_id)
+    #     # start the conversation with the existing agent . Take care the prompt! 
+    # else:
         #todo : add conversation id to the request
 
         #####place holder start######
@@ -283,26 +291,76 @@ async def chat_endpoint(req: ChatRequest):
 
 
         try:
-            # Create a new runner instance
-            req.message = req.message.strip()
-            name=req.message.split()[0]  # Assuming the first word is the name
+            # print(req)
 
-          #  file_name = name + ".cif"
+
+            conversation_id = req.conversation_id if req.conversation_id is not None else uuid4().hex
+            message = req.message
+            materials = req.materials
+            xasIDs = req.xasIDs
+            files = req.files
+
+        #     # Create a new runner instance
+        #     req.message = req.message.strip()
+        #     name=req.message.split()[0]  # Assuming the first word is the name
+
+        #   #  file_name = name + ".cif"
 
            # download_file("test-dr-xas", "cif_file", file_name)  # Download the CIF file from S3 # when upload use objectname : cif_file
 
-            cif_file = "physics/cif_files/" + name + ".cif"  #
-            agent = await create_agent(name, cif_file)
+           # if materials is provided, it is now a string
+           # (no need to index as a list)
 
-           # agent_id store for reuse? 
+            # name="team"
+            # cif_file = "physics/cif_files/" + name + ".cif"  #
+          #  agent = await create_agent(name, cif_file)
+            print("Line 320")
+      
+   
+            material = materials[0] if materials else ""
+            if material:
+                material_path = search_materials(material)
+            else:
+                material_path = ""
 
-            result = await Runner.run(agent, content)
+          #  xas_path = get_data_by_id(id)[0] if get_data_by_id(id) else ""
+            xas_path=xasIDs[0] if xasIDs else ""
+            print()
+            print("Line 323")
+            print(material_path)
+            print("Line 323")
+            print(material)
+            print("Line 324")
+            print(xas_path)
+            print("Line 324")
+            # return "this a a test result"
+
+
+            # material_url=upload_file(material_path, "test-dr-xas", "cif_file_{}".format(conversation_id))  # Upload the CIF file to S3
+            # xas_url=upload_file(xas_path, "test-dr-xas", "xas_file_{}".format(conversation_id))  # Upload the XAS file to S3
+            # fitting_result_url=upload_file("physics/fit_results/Ni_foil_fit_report.html", "test-dr-xas", "fitting_result_{}".format(conversation_id))  # Upload the fitting result file to S3
+            # print("Line 330")
+        
+        
+            # use aws to upload the cif & xas file to the s3, and give the link to the agent
+            # then the agent can download the file from the s3
+        
+
+
+            agent = await create_agent_2(material_path, material=material, xas_path=xas_path)
+
+        #    # agent_id store for reuse?
+        # also give the figs : xas & cif & fittingfig
+
+    
+
+            result = await Runner.run(agent, message)
             print(result.final_output)
             return result.final_output
 
         except Exception as e:
-            logger.error(f"Error processing chat request: {e} {cif_file}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error(f"Error processing chat request: {e}")
+            raise HTTPException(status_code=500, detail=str(e)) 
 
 
 @app.get("/xafs_database")# 

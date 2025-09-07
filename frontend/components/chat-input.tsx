@@ -30,6 +30,10 @@ export function ChatInput({
   isMultiModal,
   files,
   handleFileChange,
+  materials,
+  setMaterials,
+  xasIDs,
+  setXasIDs,
   children,
 }: {
   retry: () => void
@@ -44,6 +48,10 @@ export function ChatInput({
   isMultiModal: boolean
   files: File[]
   handleFileChange: (change: SetStateAction<File[]>) => void
+  materials: string[]
+  setMaterials: React.Dispatch<React.SetStateAction<string[]>>
+  xasIDs: string[]
+  setXasIDs: React.Dispatch<React.SetStateAction<string[]>>
   children?: React.ReactNode
 }) {
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -56,8 +64,18 @@ export function ChatInput({
 
   function handleFileRemove(file: File) {
     handleFileChange((prev) => prev.filter((f) => f !== file))
-  }
+    if (file.name in materialSpecimenMap
+      && materialSpecimenMap[file.name][0]  // check if the file name corresponds to a material with an XASID
+      && materialSpecimenMap[file.name][0] in xasIDs) // check if the XASID is in the current list
+      setXasIDs((prev) => [...prev, materialSpecimenMap[file.name][0]])
 
+
+    // Remove the material (chemical formula) if the file name matches a material in the materials array
+    setMaterials((prev) => prev.filter((mat) => mat !== file.name.replace(/\.cif$/i, '')))
+    // If the removed file is an XASID file, clear xasIDs if it matches
+    setXasIDs((prev) => prev.filter((id) => id !== materialSpecimenMap[file.name][0]))
+
+  }
   function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
     const items = Array.from(e.clipboardData.items)
 
@@ -86,6 +104,7 @@ export function ChatInput({
   // Fetch material/specimen map from API
   const [materialSpecimenMap, setMaterialSpecimenMap] = useState<MaterialSpecimenMap>({})
   const [chemicalFormula, setChemicalFormula] = useState<string>('')
+  // xasIDs and materials are now lifted to parent
 
 
 
@@ -208,26 +227,36 @@ export function ChatInput({
     setSelectedDatabase(database)
   }
 
-  function onMaterialChange(materialId: string) {
-    setSelectedMaterial(materialId)
+  function onMaterialChange(xasTitle: string) {
+    // The map is { [materialId]: [xasId, materialName] }
+    const dataInfo = materialSpecimenMap[xasTitle] || []
+    const XASID= dataInfo[0] || ''
+    setSelectedMaterial(xasTitle)
 
-    fetchChemicalFormula(materialId)
+    // Set XAS IDs (here, just the xasId as an array for consistency)
+    setXasIDs(prev => [...prev, XASID])
 
-    const dataInfo = materialSpecimenMap[materialId] || []
+    console.log("Selected material:", xasTitle, "XAS IDs:", XASID ? [XASID] : [])
 
+    fetchChemicalFormula(xasTitle)
+    console.log("Current XASIDs:", xasIDs)
+
+
+    // when I delete the file, also delete the XASID from the XASIS list . 
+  
 
     // Extract file name from path
 
     // filePath is the file path, fetch it and add as a File to files
-    fetch(`${apiUrl}/xafs/${materialId}`)
+    fetch(`${apiUrl}/xafs/${XASID}`)
       .then((res) => res.blob())
       .then((blob) => { 
-        const file = new File([blob], materialId, { type: blob.type || 'application/octet-stream' })
+        const file = new File([blob], xasTitle, { type: blob.type || 'application/octet-stream' })
         handleFileChange((prev) => {
           if (!isFileInArray(file, prev)) {
             return [...prev, file]
           }
-          return prev
+          return prev 
         })
       })
       .catch((err) => {
@@ -394,10 +423,14 @@ export function ChatInput({
                     const file = new File([blob], `${chemicalFormula}.cif`, { type: blob.type || 'application/octet-stream' });
                     handleFileChange((prev) => {
                       if (!isFileInArray(file, prev)) {
+                        // Add file and also add chemicalFormula to materials if not already present
+                       
+                        console.log("Materials after adding:", materials);
                         return [...prev, file];
                       }
                       return prev;
                     });
+                     setMaterials((mats) => mats.includes(chemicalFormula) ? mats : [...mats, chemicalFormula]);
                   } catch (err) {
                     alert('CIF file not found for this formula. Please upload manually.');
                   }

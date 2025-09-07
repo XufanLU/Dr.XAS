@@ -91,13 +91,13 @@ export function Preview({
   }, [imageUrl]); // Include imageUrl in dependency array
 
   return (
-    <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-popover h-full w-full overflow-auto">
+  <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-popover h-full w-full min-w-0 max-w-none overflow-auto">
       <Tabs
         value={selectedTab}
         onValueChange={(value) =>
           onSelectedTabChange(value as 'code' | 'viz')
         }
-        className="h-full flex flex-col items-start justify-start"
+        className="h-full flex flex-col w-full"
       >
         <div className="w-full p-2 grid grid-cols-3 items-center border-b">
           <TooltipProvider>
@@ -115,39 +115,75 @@ export function Preview({
               <TooltipContent>Collapse preview</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <div className="col-span-2 flex justify-center items-center">
+          <div className=" flex justify-center items-center">
             <p className="text-center font-semibold">Report</p>
           </div>
         </div>
-        <TabsContent value={selectedTab} >
+        <TabsContent value={selectedTab} className="w-full flex-1">
   {result && (
-    <div className="p-4">
-      {/* Messages Container */}
-      <div className="mb-6" > {/* Add margin-bottom for spacing */}
-       <pre className="max-w-[100%] whitespace-pre-wrap break-words">
-          {result.messages}
-        </pre>
-      </div>
+  <div className="p-4 space-y-4 w-full">
+      {/* 1. XAS Spectra Viewer Section */}
+  <details className="border rounded w-full min-w-0" open>
+        <summary className="cursor-pointer font-semibold p-2">1. XAS Spectra Viewer</summary>
+        <div className="p-2">
+          {/* TODO: Insert XAS spectra viewer component or placeholder */}
+          <div className="text-gray-500">[XAS Spectra Viewer goes here]</div>
+        </div>
+      </details>
 
-      {/* Image Container */}
-      <div className="relative w-full h-[500px]"> {/* Fixed height container for image */}
-        {loading && <div>Loading image...</div>}
-        {error && <div className="text-red-500">Error: {error}</div>}
-        {imageUrl && !loading && (
-          <Image
-            src={imageUrl}
-            alt="Ni Foil Analysis"
-            fill
-            style={{ objectFit: 'contain' }}
-            onError={(e) => {
-              console.error('Image loading error:', e);
-              setError('Failed to load image');
-            }}
-            unoptimized
-            priority
-          />
-        )}
-      </div>
+      {/* 2. CIF Viewer Section */}
+  <details className="border rounded w-full min-w-0" open>
+        <summary className="cursor-pointer font-semibold p-2">2. CIF Viewer</summary>
+        <div className="p-2">
+          {/* TODO: Insert CIF viewer component or placeholder */}
+          <div className="text-gray-500">[CIF Viewer goes here]</div>
+        </div>
+      </details>
+
+      {/* 3. Figure Section */}
+  <details className="border rounded w-full min-w-0" open>
+        <summary className="cursor-pointer font-semibold p-2">3. Figure</summary>
+        <div className="relative w-full h-[400px] p-2">
+          {loading && <div>Loading image...</div>}
+          {error && <div className="text-red-500">Error: {error}</div>}
+          {imageUrl && !loading && (
+            <Image
+              src={imageUrl}
+              alt="XAS Analysis"
+              fill
+              style={{ objectFit: 'contain' }}
+              onError={(e) => {
+                console.error('Image loading error:', e);
+                setError('Failed to load image');
+              }}
+              unoptimized
+              priority
+            />
+          )}
+        </div>
+      </details>
+
+      {/* 4. Result Messages as Table Section */}
+  <details className="border rounded w-full min-w-0" open>
+        <summary className="cursor-pointer font-semibold p-2">4. Result Table</summary>
+        <div className="p-2 overflow-x-auto">
+          {Array.isArray(result.messages) ? (
+            <table className="min-w-full text-sm border">
+              <tbody>
+                {result.messages.map((row: any, i: number) => (
+                  <tr key={i} className="border-b">
+                    {Array.isArray(row) ? row.map((cell, j) => (
+                      <td key={j} className="px-2 py-1 border-r">{cell}</td>
+                    )) : <td className="px-2 py-1">{row}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <pre className="max-w-[100%] whitespace-pre-wrap break-words">{result.messages}</pre>
+          )}
+        </div>
+      </details>
     </div>
   )}
 </TabsContent>
