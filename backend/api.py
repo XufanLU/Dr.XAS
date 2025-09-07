@@ -37,6 +37,7 @@ from physics.physic_functions import _make_and_run_feff, make_and_run_feff,get_a
 from spectrum_database import get_datasets, get_data_by_id
 from material_database import search_materials,get_material_by_id
 from chemical_formula import get_chemical_formula
+import glob
 
 load_dotenv()
 app = FastAPI()
@@ -335,28 +336,48 @@ async def chat_endpoint(req: ChatRequest):
             print("Line 324")
             # return "this a a test result"
 
+            # Construct the full path to the material CIF file
+            material_cif_dir = Path.cwd() /"material_cif"
+            material_path_str = str(material_cif_dir / f"{material_path}.cif")
+            print(material_path_str)
 
-            # material_url=upload_file(material_path, "test-dr-xas", "cif_file_{}".format(conversation_id))  # Upload the CIF file to S3
+            # Upload the CIF file to S3 (result not used)
+            upload_file(
+                material_path_str,
+                "test-dr-xas",
+                f'{material_path}_{conversation_id}.cif'
+            )
+
+
+            xas_dir = Path.cwd() /"online_xas_data"
+            # Find the first PNG file in the xas_path directory
+            xas_png_files = glob.glob(str(xas_dir / f"{xas_path}" / "*.png"))
+            xas_file_str = xas_png_files[0] if xas_png_files else ""
             # xas_url=upload_file(xas_path, "test-dr-xas", "xas_file_{}".format(conversation_id))  # Upload the XAS file to S3
             # fitting_result_url=upload_file("physics/fit_results/Ni_foil_fit_report.html", "test-dr-xas", "fitting_result_{}".format(conversation_id))  # Upload the fitting result file to S3
             # print("Line 330")
+            upload_file(xas_file_str,"test-dr-xas",f'xas_path_{conversation_id}')
         
         
             # use aws to upload the cif & xas file to the s3, and give the link to the agent
             # then the agent can download the file from the s3
-        
 
 
             agent = await create_agent_2(material_path, material=material, xas_path=xas_path)
 
-        #    # agent_id store for reuse?
-        # also give the figs : xas & cif & fittingfig
+        # #    # agent_id store for reuse?
+        # # also give the figs : xas & cif & fittingfig
 
     
 
             result = await Runner.run(agent, message)
             print(result.final_output)
-            return result.final_output
+            return {
+                "message": result.final_output,
+                "material_url": f'{material_path}_{conversation_id}.cif',
+                "xas_url": f'xas_path_{conversation_id}',
+                "fitting_result_url": f'fitting_result_{conversation_id}.html'
+            }
 
         except Exception as e:
             logger.error(f"Error processing chat request: {e}")

@@ -72,6 +72,7 @@ def upload_file(file_name, bucket, object_name=None):
     :return: True if file was uploaded, else False
     """
     s3_client=create_s3_client()
+    create_bucket(bucket_name='test-dr-xas')
 
 
     # If S3 object_name was not specified, use file_name
@@ -83,6 +84,7 @@ def upload_file(file_name, bucket, object_name=None):
          response = s3_client.upload_fileobj(f,bucket, object_name)
 
         print(response)
+        print('linr 87')
     except ClientError as e:
         logging.error(e)
         return False
@@ -131,6 +133,7 @@ def delete_file(bucket, object_name):
 if __name__ == "__main__":
 
     create_bucket("test-dr-xas")
-    upload_file("/Users/xufanlu/Projects/MT/Dr.XAFS/physics/cif_files/Ni_foil.cif", "test-dr-xas", "cif_file")
+    result=upload_file("/Users/xufanlu/Projects/MT/Dr.XAFS/backend/material_cif/mp-1072089.cif", "test-dr-xas", "cif_file")
+    print(result)
     #download_file("test-dr-xas", "cif_file", "Ni_foil.cif")
     #delete_file("test-dr-xas", "cif_file")

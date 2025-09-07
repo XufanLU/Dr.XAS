@@ -249,17 +249,24 @@ export default function Home() {
     const result = await response.json();
     console.log('API response:', result);
 
+
+    // Store the API response as a structured object for Preview
     setResult({
-      sbxId: result.sbxId ?? '', // Provide a valid sbxId from the API response or fallback to empty string
-      messages: result
+      sbxId: result.sbxId ?? '',
+      message: result.message ?? '',
+      material_url: result.material_url ?? '',
+      xas_url: result.xas_url ?? '',
+      fitting_result_url: result.fitting_result_url ?? '',
+      // fallback for legacy: also provide messages as a string for table
+      messages: `Message: ${result.message}\nMaterial URL: ${result.material_url}\nXAS URL: ${result.xas_url}\nFitting Result URL: ${result.fitting_result_url}`
     });
-    
+
     // Show preview when new result arrives
     setIsPreviewVisible(true);
-    
-    // Update the loading message with the actual response
+
+    // Update the loading message with the actual response (as a string)
     setMessage({
-      content: [{ type: 'text', text: result }]
+      content: [{ type: 'text', text: `Message: ${result.message}\nMaterial URL: ${result.material_url}\nXAS URL: ${result.xas_url}\nFitting Result URL: ${result.fitting_result_url}` }]
     }, loadingMessageIndex);
 
     // Clear input and switch to viz tab

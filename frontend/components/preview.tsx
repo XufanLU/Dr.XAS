@@ -90,8 +90,21 @@ export function Preview({
     };
   }, [imageUrl]); // Include imageUrl in dependency array
 
+  // Use structured fields if available
+  // Allow extra fields on result for new API structure
+  const extendedResult = result as ExecutionResult & {
+    material_url?: string;
+    xas_url?: string;
+    fitting_result_url?: string;
+    message?: string;
+  };
+  const materialUrl = extendedResult && typeof extendedResult.material_url === 'string' ? extendedResult.material_url : '';
+  const xasUrl = extendedResult && typeof extendedResult.xas_url === 'string' ? extendedResult.xas_url : '';
+  const fittingUrl = extendedResult && typeof extendedResult.fitting_result_url === 'string' ? extendedResult.fitting_result_url : '';
+  const mainMessage = extendedResult && typeof extendedResult.message === 'string' ? extendedResult.message : '';
+
   return (
-  <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-popover h-full w-full min-w-0 max-w-none overflow-auto">
+    <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-popover h-full w-full min-w-0 max-w-none overflow-auto">
       <Tabs
         value={selectedTab}
         onValueChange={(value) =>
@@ -120,73 +133,87 @@ export function Preview({
           </div>
         </div>
         <TabsContent value={selectedTab} className="w-full flex-1">
-  {result && (
-  <div className="p-4 space-y-4 w-full">
-      {/* 1. XAS Spectra Viewer Section */}
-  <details className="border rounded w-full min-w-0" open>
-        <summary className="cursor-pointer font-semibold p-2">1. XAS Spectra Viewer</summary>
-        <div className="p-2">
-          {/* TODO: Insert XAS spectra viewer component or placeholder */}
-          <div className="text-gray-500">[XAS Spectra Viewer goes here]</div>
-        </div>
-      </details>
+          {result && (
+            <div className="p-4 space-y-4 w-full">
+              {/* 1. XAS Spectra Viewer Section */}
+              <details className="border rounded w-full min-w-0" open>
+                <summary className="cursor-pointer font-semibold p-2">1. XAS Spectra Viewer</summary>
+                <div className="p-2">
+                  {xasUrl ? (
+                    <a href={xasUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View XAS Data</a>
+                  ) : (
+                    <div className="text-gray-500">[XAS Spectra Viewer goes here]</div>
+                  )}
+                </div>
+              </details>
 
-      {/* 2. CIF Viewer Section */}
-  <details className="border rounded w-full min-w-0" open>
-        <summary className="cursor-pointer font-semibold p-2">2. CIF Viewer</summary>
-        <div className="p-2">
-          {/* TODO: Insert CIF viewer component or placeholder */}
-          <div className="text-gray-500">[CIF Viewer goes here]</div>
-        </div>
-      </details>
+              {/* 2. CIF Viewer Section */}
+              <details className="border rounded w-full min-w-0" open>
+                <summary className="cursor-pointer font-semibold p-2">2. CIF Viewer</summary>
+                <div className="p-2">
+                  {materialUrl ? (
+                    <a href={materialUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View Material CIF</a>
+                  ) : (
+                    <div className="text-gray-500">[CIF Viewer goes here]</div>
+                  )}
+                </div>
+              </details>
 
-      {/* 3. Figure Section */}
-  <details className="border rounded w-full min-w-0" open>
-        <summary className="cursor-pointer font-semibold p-2">3. Figure</summary>
-        <div className="relative w-full h-[400px] p-2">
-          {loading && <div>Loading image...</div>}
-          {error && <div className="text-red-500">Error: {error}</div>}
-          {imageUrl && !loading && (
-            <Image
-              src={imageUrl}
-              alt="XAS Analysis"
-              fill
-              style={{ objectFit: 'contain' }}
-              onError={(e) => {
-                console.error('Image loading error:', e);
-                setError('Failed to load image');
-              }}
-              unoptimized
-              priority
-            />
+              {/* 3. Figure Section */}
+              <details className="border rounded w-full min-w-0" open>
+                <summary className="cursor-pointer font-semibold p-2">3. Figure</summary>
+                <div className="relative w-full h-[400px] p-2">
+                  {loading && <div>Loading image...</div>}
+                  {error && <div className="text-red-500">Error: {error}</div>}
+                  {imageUrl && !loading && (
+                    <Image
+                      src={imageUrl}
+                      alt="XAS Analysis"
+                      fill
+                      style={{ objectFit: 'contain' }}
+                      onError={(e) => {
+                        console.error('Image loading error:', e);
+                        setError('Failed to load image');
+                      }}
+                      unoptimized
+                      priority
+                    />
+                  )}
+                  {fittingUrl && (
+                    <div className="mt-2">
+                      <a href={fittingUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View Fitting Result</a>
+                    </div>
+                  )}
+                </div>
+              </details>
+
+              {/* 4. Result Messages as Table Section */}
+              <details className="border rounded w-full min-w-0" open>
+                <summary className="cursor-pointer font-semibold p-2">4. Result Table</summary>
+                <div className="p-2 overflow-x-auto">
+                  {mainMessage && (
+                    <div className="mb-2 font-semibold">{mainMessage}</div>
+                  )}
+                  {Array.isArray(result.messages) ? (
+                    <table className="min-w-full text-sm border">
+                      <tbody>
+                        {result.messages.map((row: any, i: number) => (
+                          <tr key={i} className="border-b">
+                            {Array.isArray(row) ? row.map((cell, j) => (
+                              <td key={j} className="px-2 py-1 border-r">{cell}</td>
+                            )) : <td className="px-2 py-1">{row}</td>}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <pre className="max-w-[100%] whitespace-pre-wrap break-words">{result.messages}</pre>
+                  )}
+                </div>
+              </details>
+            </div>
           )}
-        </div>
-      </details>
-
-      {/* 4. Result Messages as Table Section */}
-  <details className="border rounded w-full min-w-0" open>
-        <summary className="cursor-pointer font-semibold p-2">4. Result Table</summary>
-        <div className="p-2 overflow-x-auto">
-          {Array.isArray(result.messages) ? (
-            <table className="min-w-full text-sm border">
-              <tbody>
-                {result.messages.map((row: any, i: number) => (
-                  <tr key={i} className="border-b">
-                    {Array.isArray(row) ? row.map((cell, j) => (
-                      <td key={j} className="px-2 py-1 border-r">{cell}</td>
-                    )) : <td className="px-2 py-1">{row}</td>}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <pre className="max-w-[100%] whitespace-pre-wrap break-words">{result.messages}</pre>
-          )}
-        </div>
-      </details>
-    </div>
-  )}
-</TabsContent>
+        </TabsContent>
       </Tabs>
     </div>
   );
