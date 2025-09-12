@@ -13,7 +13,9 @@ import { ChevronsRight, LoaderCircle, X } from 'lucide-react'
 import { Dispatch, SetStateAction, useState, useEffect } from 'react'
 import { S3Client , GetObjectCommand} from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import Image from 'next/image';
+
+import { PlotlyXASSpectraViewer } from './PlotlyXASSpectraViewer';
+import NextImage from 'next/image';
 
 
 export function Preview({
@@ -40,56 +42,6 @@ export function Preview({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    console.log('Fetching image from S3...');
-    const downloadFromS3 = async () => {
-    const accessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY;
-    
-    if (!accessKeyId || !secretAccessKey) {
-      setError('AWS credentials not configured');
-      setLoading(false);
-      return;
-    }
-
-    const s3Client = new S3Client({
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
-      region: "eu-north-1"
-    });
-      setLoading(true);
-      const command = new GetObjectCommand({
-        Bucket: 'test-dr-xas',
-        Key: 'viz/Ni_foil_all.jpg', // Adjust the key based on your S3 structure
-      });
-
-
-    try {
-    
-      const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-      setImageUrl(url);
-      setLoading(false);
-     
-      
-    } catch (err) {
-      console.error('Error downloading file:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load image');
-      setLoading(false);
-    }
-    };
-
-    downloadFromS3();
-
-    // Cleanup function
-    return () => {
-      if (imageUrl) {
-        URL.revokeObjectURL(imageUrl);
-      }
-    };
-  }, [imageUrl]); // Include imageUrl in dependency array
 
 
 
@@ -124,19 +76,12 @@ export function Preview({
   const fittingUrl = extendedResult && typeof extendedResult.fitting_result_url === 'string' ? extendedResult.fitting_result_url : '';
   const mainMessage = extendedResult && typeof extendedResult.message === 'string' ? extendedResult.message : '';
 
-  // Download XAS file from S3 using xasUrl and show as PNG image by default
-  const [xasDownloadUrl, setXasDownloadUrl] = useState<string | null>(null);
-  const [imgScale, setImgScale] = useState<number>(1);
-  const [imgOffset, setImgOffset] = useState<{x: number, y: number}>({x: 0, y: 0});
-  const [dragging, setDragging] = useState<boolean>(false);
-  const [dragStart, setDragStart] = useState<{x: number, y: number} | null>(null);
+  // Download XAS file from S3 using xasUrl and pass content to PlotlyXASSpectraViewer
+  const [xasTxtContent, setXasTxtContent] = useState<string | null>(null);
+
 
   // CIF viewer state
   const [cifContent, setCifContent] = useState<string | null>(null);
-  const [cifScale, setCifScale] = useState<number>(1);
-  const [cifOffset, setCifOffset] = useState<{x: number, y: number}>({x: 0, y: 0});
-  const [cifDragging, setCifDragging] = useState<boolean>(false);
-  const [cifDragStart, setCifDragStart] = useState<{x: number, y: number} | null>(null);
 
   useEffect(() => {
     const fetchXasUrl = async () => {
@@ -157,7 +102,12 @@ export function Preview({
       });
       try {
         const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-        setXasDownloadUrl(url);
+        // setXasDownloadUrl(url);
+        // Fetch the txt file content
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('Failed to fetch XAS txt file');
+        const text = await resp.text();
+        setXasTxtContent(text);
       } catch (err) {
         setError('Failed to get XAS file URL');
       }
@@ -216,6 +166,57 @@ useEffect(() => {
   }
 }, [cifContent]);
 
+  useEffect(() => {
+    console.log('Fetching image from S3...');
+    const downloadFromS3 = async () => {
+    const accessKeyId = process.env.NEXT_PUBLIC_AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.NEXT_PUBLIC_AWS_SECRET_ACCESS_KEY;
+    
+    if (!accessKeyId || !secretAccessKey) {
+      setError('AWS credentials not configured');
+      setLoading(false);
+      return;
+    }
+
+    const s3Client = new S3Client({
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+      region: "eu-north-1"
+    });
+      setLoading(true);
+      const command = new GetObjectCommand({
+        Bucket: 'test-dr-xas',
+        Key: `${fittingUrl}`, // Adjust the key based on your S3 structure
+      });
+
+
+    try {
+    
+      const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+      setImageUrl(url);
+      setLoading(false);
+     
+      
+    } catch (err) {
+      console.error('Error downloading file:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load image');
+      setLoading(false);
+    }
+    };
+
+    downloadFromS3();
+
+    // Cleanup function
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [imageUrl]); // Include imageUrl in dependency array
+
+
 
 
   return (
@@ -254,67 +255,8 @@ useEffect(() => {
               <details className="border rounded w-full min-w-0" open>
                 <summary className="cursor-pointer font-semibold p-2">1. XAS Spectra Viewer</summary>
                 <div className="p-2">
-                  {xasDownloadUrl ? (
-                    <>
-                      {/* <a href={xasDownloadUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Download XAS Data from S3</a> */}
-                      <div
-                        className="relative mt-2 border rounded shadow bg-white select-none"
-                        style={{height: '400px', width: '100%', minHeight: '100px', overflow: 'hidden', cursor: dragging ? 'grabbing' : 'grab'}}
-                        onMouseDown={e => {
-                          setDragging(true);
-                          setDragStart({x: e.clientX - imgOffset.x, y: e.clientY - imgOffset.y});
-                        }}
-                        onMouseUp={() => setDragging(false)}
-                        onMouseLeave={() => setDragging(false)}
-                        onMouseMove={e => {
-                          if (dragging && dragStart) {
-                            setImgOffset({
-                              x: e.clientX - dragStart.x,
-                              y: e.clientY - dragStart.y
-                            });
-                          }
-                        }}
-                      >
-                        {/* Zoom controls in top-right corner */}
-                        <div className="absolute top-2 right-2 flex items-center gap-2 z-10 bg-white/80 p-1 rounded shadow">
-                          <button
-                            type="button"
-                            className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 border"
-                            onClick={e => { e.stopPropagation(); setImgScale((s) => Math.min(s + 0.2, 5)); }}
-                            aria-label="Zoom in"
-                          >
-                            +
-                          </button>
-                          <button
-                            type="button"
-                            className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 border"
-                            onClick={e => { e.stopPropagation(); setImgScale((s) => Math.max(s - 0.2, 0.2)); }}
-                            aria-label="Zoom out"
-                          >
-                            -
-                          </button>
-                          <span className="text-xs text-gray-500">{(imgScale * 100).toFixed(0)}%</span>
-                        </div>
-                        <img
-                          src={xasDownloadUrl}
-                          alt="XAS PNG"
-                          draggable={false}
-                          style={{
-                            transform: `translate(${imgOffset.x}px, ${imgOffset.y}px) scale(${imgScale})`,
-                            transformOrigin: 'top left',
-                            transition: dragging ? 'none' : 'transform 0.2s',
-                            userSelect: 'none',
-                            pointerEvents: 'auto',
-                          }}
-                          className="block max-w-none"
-                        />
-                      </div>
-                    </>
-                  ) : xasUrl ? (
-                    <div className="text-gray-500">Generating download link...</div>
-                  ) : (
-                    <div className="text-gray-500">[XAS Spectra Viewer goes here]</div>
-                  )}
+                  {/* Plotly.js XAS Spectra Viewer (Energy vs mu t) using fetched txt file */}
+                  <PlotlyXASSpectraViewer txtContent={xasTxtContent} fileName={xasUrl} />
                 </div>
               </details>
 
@@ -339,6 +281,29 @@ useEffect(() => {
                   )}
                 </div>
               </details>
+
+               {/* 3. Figure Section */}
+              <details className="border rounded w-full min-w-0" open>
+                <summary className="cursor-pointer font-semibold p-2">3. Figure</summary>
+                <div className="relative w-full h-[400px] p-2">
+                  {loading && <div>Loading image...</div>}
+                  {error && <div className="text-red-500">Error: {error}</div>}
+                  {imageUrl && !loading && (
+                    <NextImage
+                      src={imageUrl}
+                      alt="XAS Analysis"
+                      fill
+                      style={{ objectFit: 'contain' }}
+                      onError={(e) => {
+                        console.error('Image loading error:', e);
+                        setError('Failed to load image');
+                      }}
+                    />
+                  )}
+                </div>
+              </details>
+
+
 
 
               {/* 4. Result Messages as Table Section */}

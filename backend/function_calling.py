@@ -259,7 +259,8 @@ def viz(name,path_list,result,xas_path:str  ):
         save_path = origin / save_folder / f"{sample}_all.jpg"
         plt.savefig(save_path, dpi = 300)
         # save_file_aws
-        upload_file(save_path, "test-dr-xas", f"viz/{sample}_all.jpg")# what if file already exists?
+
+        upload_file(save_path, "test-dr-xas", f"viz/{xas_path}.jpg")# what if file already exists?
         print(f"Visualization saved to {save_path}")
 
 

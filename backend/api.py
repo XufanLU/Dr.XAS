@@ -316,16 +316,16 @@ async def chat_endpoint(req: ChatRequest):
             # cif_file = "physics/cif_files/" + name + ".cif"  #
           #  agent = await create_agent(name, cif_file)
             print("Line 320")
-      
-   
-            material = materials[0] if materials else ""
+
+
+            material = materials[0] if materials else ''
             if material:
                 material_path = search_materials(material)
             else:
-                material_path = ""
+                material_path = ''
 
           #  xas_path = get_data_by_id(id)[0] if get_data_by_id(id) else ""
-            xas_path=xasIDs[0] if xasIDs else ""
+            xas_path=xasIDs[0] if xasIDs else ''
             print()
             print("Line 323")
             print(material_path)
@@ -336,28 +336,32 @@ async def chat_endpoint(req: ChatRequest):
             print("Line 324")
             # return "this a a test result"
 
-            # Construct the full path to the material CIF file
-            material_cif_dir = Path.cwd() /"material_cif"
-            material_path_str = str(material_cif_dir / f"{material_path}.cif")
-            print(material_path_str)
+            if material_path != '':
+                # Construct the full path to the material CIF file
+                material_cif_dir = Path.cwd() /"material_cif"
+                material_path_str = str(material_cif_dir / f"{material_path}.cif")
+                print(material_path_str)
 
-            # Upload the CIF file to S3 (result not used)
-            upload_file(
-                material_path_str,
-                "test-dr-xas",
-                f'{material_path}_{conversation_id}.cif'
-            )
-
-
-            xas_dir = Path.cwd() /"online_xas_data"
-            # Find the first PNG file in the xas_path directory
-            xas_png_files = glob.glob(str(xas_dir / f"{xas_path}" / "*.png"))
-            xas_file_str = xas_png_files[0] if xas_png_files else ""
-            # xas_url=upload_file(xas_path, "test-dr-xas", "xas_file_{}".format(conversation_id))  # Upload the XAS file to S3
-            # fitting_result_url=upload_file("physics/fit_results/Ni_foil_fit_report.html", "test-dr-xas", "fitting_result_{}".format(conversation_id))  # Upload the fitting result file to S3
-            # print("Line 330")
-            upload_file(xas_file_str,"test-dr-xas",f'xas_path_{conversation_id}')
-        
+                # Upload the CIF file to S3 (result not used)
+                upload_file(
+                    material_path_str,
+                    "test-dr-xas",
+                    f'{material_path}_{conversation_id}.cif'
+                )
+            base_name_no_ext = ''
+            if  xas_path != '':
+                xas_dir = Path.cwd() / "online_xas_data"
+                # Find the first TXT file in the xas_path directory
+                xas_txt_files = glob.glob(str(xas_dir / f"{xas_path}" / "*.txt"))
+                xas_file_str = xas_txt_files[0] if xas_txt_files else ""
+                print('line357')
+                print(xas_file_str)
+                # Use only the last part of the file name (without extension) as the S3 object name
+                if xas_file_str:
+                    base_name = Path(xas_file_str).name  # e.g. Ni-K_NiMoO4_Si111_10ms_131127.txt
+                    base_name_no_ext = Path(base_name).stem  # e.g. Ni-K_NiMoO4_Si111_10ms_131127
+                    upload_file(xas_file_str, "test-dr-xas", base_name_no_ext)
+            
         
             # use aws to upload the cif & xas file to the s3, and give the link to the agent
             # then the agent can download the file from the s3
@@ -365,18 +369,18 @@ async def chat_endpoint(req: ChatRequest):
 
             agent = await create_agent_2(material_path, material=material, xas_path=xas_path)
 
-        # #    # agent_id store for reuse?
-        # # also give the figs : xas & cif & fittingfig
+        # # #    # agent_id store for reuse?
+        # # # also give the figs : xas & cif & fittingfig
 
     
 
             result = await Runner.run(agent, message)
-            print(result.final_output)
+         #   print(result.final_output)
             return {
-                "message": result.final_output,
+                "message":result.final_output,#"this is a test",# 
                 "material_url": f'{material_path}_{conversation_id}.cif',
-                "xas_url": f'xas_path_{conversation_id}',
-                "fitting_result_url": f'fitting_result_{conversation_id}.html'
+                "xas_url": f'{base_name_no_ext}',
+                "fitting_result_url": f'viz/{xas_path}.jpg'
             }
 
         except Exception as e:
