@@ -421,7 +421,7 @@ export default function Home() {
             onUndo={handleUndo}
           />
           {messages.length === 0 && (
-            <div className="flex justify-center items-center mt-8 mb-1">
+            <div className="flex justify-center items-center mt-8">
               <img src="/static/drxas_logo_big.png" alt="Dr.XAS Logo" style={{ maxWidth: '500px', width: '80%', height: 'auto' }} />
             </div>
           )}
@@ -430,7 +430,14 @@ export default function Home() {
             isLoading={isLoading || isApiLoading}
             setCurrentPreview={setCurrentPreview}
           />
-          <div className={messages.length === 0 ? "flex flex-col flex-1" : "flex flex-col flex-1 justify-end"}>
+          {/* here to adjust the position of the chatinput box on the page  */}
+          <div
+            className={
+              messages.length === 0
+                ? "flex flex-col min-h-[20vh] justify-center"
+                : "flex flex-col flex-1 justify-end"
+            }
+          >
             <div className="flex items-center justify-center w-full">
               <div className="w-[80vw] max-w-full">
                 <ChatInput
@@ -450,6 +457,7 @@ export default function Home() {
                   setMaterials={setMaterials}
                   xasIDs={xasIDs}
                   setXasIDs={setXasIDs}
+                  compact={!!(result && isPreviewVisible)}
                 >
                   {/* <ChatPicker
                     templates={templates}

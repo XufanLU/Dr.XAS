@@ -15,6 +15,7 @@ import { S3Client , GetObjectCommand} from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import Image from 'next/image';
 
+
 export function Preview({
   teamID,
   accessToken,
@@ -199,6 +200,24 @@ export function Preview({
   }, [materialUrl]);
 
 
+useEffect(() => {
+  if (cifContent && typeof window !== 'undefined') {
+    import('3dmol').then(($3Dmol) => {
+      const element = document.getElementById("cif-viewer");
+      if (element) {
+        const config = { backgroundColor: 'white' };
+        const viewer = $3Dmol.createViewer(element, config);
+        viewer.addModel(cifContent, "cif");
+        viewer.setStyle({}, { stick: { radius: 0.15 }, sphere: { scale: 0.3 } });
+        viewer.zoomTo();
+        viewer.render();
+      }
+    });
+  }
+}, [cifContent]);
+
+
+
   return (
     <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-popover h-full w-full min-w-0 max-w-none overflow-auto">
       <Tabs
@@ -305,60 +324,14 @@ export function Preview({
                 <div className="p-2">
                   {materialUrl ? (
                     <>
-                      {/* <a href={materialUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View Material CIF</a> */}
                       <div
                         className="relative border rounded shadow bg-white select-none"
-                        style={{height: '300px', width: '100%', minHeight: '100px', overflow: 'hidden', cursor: cifDragging ? 'grabbing' : 'grab'}}
-                        onMouseDown={e => {
-                          setCifDragging(true);
-                          setCifDragStart({x: e.clientX - cifOffset.x, y: e.clientY - cifOffset.y});
-                        }}
-                        onMouseUp={() => setCifDragging(false)}
-                        onMouseLeave={() => setCifDragging(false)}
-                        onMouseMove={e => {
-                          if (cifDragging && cifDragStart) {
-                            setCifOffset({
-                              x: e.clientX - cifDragStart.x,
-                              y: e.clientY - cifDragStart.y
-                            });
-                          }
-                        }}
+                        style={{ height: '400px', width: '100%', minHeight: '100px' }}
                       >
-                        {/* Zoom controls in top-right corner */}
-                        <div className="absolute top-2 right-2 flex items-center gap-2 z-10 bg-white/80 p-1 rounded shadow">
-                          <button
-                            type="button"
-                            className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 border"
-                            onClick={e => { e.stopPropagation(); setCifScale((s) => Math.min(s + 0.2, 5)); }}
-                            aria-label="Zoom in"
-                          >
-                            +
-                          </button>
-                          <button
-                            type="button"
-                            className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 border"
-                            onClick={e => { e.stopPropagation(); setCifScale((s) => Math.max(s - 0.2, 0.2)); }}
-                            aria-label="Zoom out"
-                          >
-                            -
-                          </button>
-                          <span className="text-xs text-gray-500">{(cifScale * 100).toFixed(0)}%</span>
-                        </div>
-                        <pre
-                          style={{
-                            transform: `translate(${cifOffset.x}px, ${cifOffset.y}px) scale(${cifScale})`,
-                            transformOrigin: 'top left',
-                            transition: cifDragging ? 'none' : 'transform 0.2s',
-                            userSelect: 'none',
-                            pointerEvents: 'auto',
-                            margin: 0,
-                            minWidth: '100%',
-                            minHeight: '100%',
-                            fontSize: '0.85rem',
-                            background: 'inherit',
-                          }}
-                          className="block max-w-none whitespace-pre"
-                        >{cifContent || 'Loading CIF file...'}</pre>
+                        <div
+                          id="cif-viewer"
+                          style={{ width: '100%', height: '100%' }}
+                        />
                       </div>
                     </>
                   ) : (
@@ -367,33 +340,6 @@ export function Preview({
                 </div>
               </details>
 
-              {/* 3. Figure Section */}
-              <details className="border rounded w-full min-w-0" open>
-                <summary className="cursor-pointer font-semibold p-2">3. Figure</summary>
-                <div className="relative w-full h-[400px] p-2">
-                  {loading && <div>Loading image...</div>}
-                  {error && <div className="text-red-500">Error: {error}</div>}
-                  {imageUrl && !loading && (
-                    <Image
-                      src={imageUrl}
-                      alt="XAS Analysis"
-                      fill
-                      style={{ objectFit: 'contain' }}
-                      onError={(e) => {
-                        console.error('Image loading error:', e);
-                        setError('Failed to load image');
-                      }}
-                      unoptimized
-                      priority
-                    />
-                  )}
-                  {fittingUrl && (
-                    <div className="mt-2">
-                      <a href={fittingUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View Fitting Result</a>
-                    </div>
-                  )}
-                </div>
-              </details>
 
               {/* 4. Result Messages as Table Section */}
               <details className="border rounded w-full min-w-0" open>

@@ -35,6 +35,7 @@ export function ChatInput({
   xasIDs,
   setXasIDs,
   children,
+  compact = false,
 }: {
   retry: () => void
   isErrored: boolean
@@ -53,6 +54,7 @@ export function ChatInput({
   xasIDs: string[]
   setXasIDs: React.Dispatch<React.SetStateAction<string[]>>
   children?: React.ReactNode
+  compact?: boolean
 }) {
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     handleFileChange((prev) => {
@@ -263,6 +265,67 @@ export function ChatInput({
         console.error('Error fetching XAFS data:', err)
       })
   }
+  const [showFullControls, setShowFullControls] = useState(false);
+
+  if (compact && !showFullControls) {
+    // Compact mode: keep the outer box, only show textarea and send button (no + button)
+    return (
+      <form
+        onSubmit={handleSubmit}
+        onKeyDown={onEnter}
+        className="mb-2 mt-auto flex flex-col bg-background"
+      >
+        <div className="relative">
+          <RepoBanner className="absolute bottom-full inset-x-2 translate-y-1 z-0 pb-2" />
+          <div
+            className={
+              `shadow-md rounded-2xl relative z-10 bg-background border` +
+              (dragActive ? ' before:absolute before:inset-0 before:rounded-2xl before:border-2 before:border-dashed before:border-primary' : '')
+            }
+          >
+            <div className="flex items-center gap-2 px-3 py-2">
+              <TextareaAutosize
+                autoFocus={true}
+                minRows={1}
+                maxRows={5}
+                className="text-normal px-3 resize-none ring-0 bg-inherit w-full m-0 outline-none"
+                required={true}
+                placeholder={compact ? "Type in your message:" : "Try a random material's fit pulled from the MDR XAFS database and Material Database"}
+                disabled={isErrored}
+                value={input}
+                onChange={handleInputChange}
+              />
+              {!isLoading ? (
+                <Button
+                  disabled={isErrored}
+                  variant="default"
+                  size="icon"
+                  type="submit"
+                  className="rounded-xl h-10 w-10"
+                >
+                  <ArrowUp className="h-5 w-5" />
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="rounded-xl h-10 w-10"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    stop();
+                  }}
+                >
+                  <Square className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </form>
+    );
+  }
+
+  // Full controls (default)
   return (
     <form
       onSubmit={handleSubmit}
@@ -308,7 +371,6 @@ export function ChatInput({
             maxRows={5}
             className="text-normal px-3 resize-none ring-0 bg-inherit w-full m-0 outline-none"
             required={true}
-            //placeholder="Ni_foil"
             placeholder="Try a random material's fit pulled from the MDR XAFS database"
             disabled={isErrored}
             value={input}
