@@ -7,7 +7,9 @@ import { ChatInput } from '@/components/chat-input'
 import { ChatPicker } from '@/components/chat-picker'
 import { ChatSettings } from '@/components/chat-settings'
 import { NavBar } from '@/components/navbar'
-import { Preview } from '@/components/preview'
+import dynamic from 'next/dynamic'
+import Image from 'next/image'
+const Preview = dynamic(() => import('@/components/preview').then(mod => mod.Preview), { ssr: false })
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth'
 import { Message, toAISDKMessages, toMessageImage } from '@/lib/messages'
@@ -422,7 +424,7 @@ export default function Home() {
           />
           {messages.length === 0 && (
             <div className="flex justify-center items-center mt-8">
-              <img src="/static/drxas_logo_big.png" alt="Dr.XAS Logo" style={{ maxWidth: '500px', width: '80%', height: 'auto' }} />
+              <Image src="/static/drxas_logo_big.png" alt="Dr.XAS Logo" width={500} height={300} style={{ width: '80%', height: 'auto' }} />
             </div>
           )}
           <Chat
@@ -487,7 +489,6 @@ export default function Home() {
             isChatLoading={isLoading}
             isPreviewLoading={isPreviewLoading}
             filename={chatInput}
-         //   fragment={fragment}
             result={result as ExecutionResult}
             onClose={() => handleClosePreview()}
           />
